@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Copilot Network Connectivity Check</title>
+    <style>
+        :root {
+            --color-bg: #0d1117;
+            --color-surface: #161b22;
+            --color-border: #30363d;
+            --color-text: #e6edf3;
+            --color-text-muted: #8b949e;
+            --color-accent: #58a6ff;
+            --color-success: #3fb950;
+            --color-danger: #f85149;
+            --color-warning: #d29922;
+            --color-btn-bg: #21262d;
+            --color-btn-hover: #30363d;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            padding: 2rem;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+        h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+        h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-text-muted); }
+
+        .subtitle {
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+
+        .section {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .plan-selector {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+
+        .plan-option { position: relative; }
+        .plan-option input[type="radio"],
+        .plan-option input[type="checkbox"] {
+            position: absolute; opacity: 0; pointer-events: none;
+        }
+
+        .plan-option label {
+            display: block;
+            padding: 0.5rem 1.25rem;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .plan-option label:hover { border-color: var(--color-accent); }
+        .plan-option input:checked + label {
+            border-color: var(--color-accent);
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--color-accent);
+        }
+
+        .inline-input {
+            display: none;
+            margin-top: 0.75rem;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .inline-input.visible { display: flex; }
+        .inline-input label {
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+        }
+
+        input[type="text"] {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            color: var(--color-text);
+            padding: 0.4rem 0.75rem;
+            font-size: 0.875rem;
+            width: 240px;
+        }
+        input[type="text"]:focus { outline: none; border-color: var(--color-accent); }
+
+        .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
+
+        button {
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--color-border);
+            transition: all 0.15s;
+        }
+
+        .btn-primary {
+            background: var(--color-accent);
+            color: #ffffff;
+            border-color: var(--color-accent);
+        }
+        .btn-primary:hover { filter: brightness(1.1); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-secondary { background: var(--color-btn-bg); color: var(--color-text); }
+        .btn-secondary:hover { background: var(--color-btn-hover); }
+
+        .btn-small {
+            padding: 0.3rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        /* Results */
+        .results-section { display: none; margin-top: 1.5rem; }
+        .results-section.visible { display: block; }
+
+        .summary-bar {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        .summary-item { display: flex; align-items: center; gap: 0.4rem; }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--color-border);
+            border-radius: 2px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--color-accent);
+            border-radius: 2px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        .endpoint-group { margin-bottom: 1.5rem; }
+        .endpoint-group h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .endpoint-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+            gap: 1rem;
+        }
+        .endpoint-row:last-child { border-bottom: none; }
+
+        .endpoint-left { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; flex: 1; }
+        .endpoint-url {
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.8rem;
+            color: var(--color-accent);
+            word-break: break-all;
+        }
+        .endpoint-purpose { font-size: 0.75rem; color: var(--color-text-muted); }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .status-pass { background: rgba(63, 185, 80, 0.15); color: var(--color-success); }
+        .status-fail { background: rgba(248, 81, 73, 0.15); color: var(--color-danger); }
+        .status-warn { background: rgba(210, 153, 34, 0.15); color: var(--color-warning); }
+        .status-pending { background: rgba(139, 148, 158, 0.15); color: var(--color-text-muted); }
+
+        /* Firewall checklist */
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+            font-size: 0.85rem;
+        }
+        .checklist-item:last-child { border-bottom: none; }
+        .checklist-domain {
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.8rem;
+            color: var(--color-accent);
+            min-width: 280px;
+        }
+        .checklist-note { color: var(--color-text-muted); font-size: 0.8rem; }
+        .checklist-icon { font-size: 0.9rem; flex-shrink: 0; margin-top: 0.1rem; }
+
+        .tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+        .tag-required { background: rgba(248, 81, 73, 0.15); color: var(--color-danger); }
+        .tag-optional { background: rgba(139, 148, 158, 0.15); color: var(--color-text-muted); }
+        .tag-routing { background: rgba(210, 153, 34, 0.15); color: var(--color-warning); }
+
+        /* Script section */
+        .script-tabs { display: flex; gap: 0; margin-bottom: 0; }
+        .script-tab {
+            padding: 0.4rem 1rem;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            color: var(--color-text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .script-tab.active { background: var(--color-surface); color: var(--color-text); }
+
+        .script-content {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 0 6px 6px 6px;
+            padding: 1rem;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .script-options {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+        }
+        .script-options label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+            color: var(--color-text-muted);
+        }
+        .script-options input[type="checkbox"] { accent-color: var(--color-accent); }
+
+        /* IDE section */
+        .ide-tabs { display: flex; gap: 0; margin-bottom: 0; }
+        .ide-tab {
+            padding: 0.4rem 1rem;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            color: var(--color-text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .ide-tab.active { background: var(--color-surface); color: var(--color-text); }
+
+        .ide-content {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 0 6px 6px 6px;
+            padding: 1.25rem;
+            font-size: 0.85rem;
+            line-height: 1.7;
+        }
+        .ide-content code {
+            background: rgba(88, 166, 255, 0.1);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.8rem;
+        }
+        .ide-content ol, .ide-content ul { padding-left: 1.5rem; margin: 0.5rem 0; }
+        .ide-content li { margin-bottom: 0.3rem; }
+
+        /* Export bar */
+        .export-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--color-border);
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--color-border);
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+        }
+        .footer a { color: var(--color-accent); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+
+        /* Collapsible */
+        details { margin-top: 0.5rem; }
+        details summary {
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--color-accent);
+            user-select: none;
+        }
+        details summary:hover { text-decoration: underline; }
+
+        /* Info box */
+        .info-box {
+            background: rgba(88, 166, 255, 0.08);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            color: var(--color-text-muted);
+        }
+        .info-box strong { color: var(--color-text); }
+
+        @media (max-width: 640px) {
+            body { padding: 1rem; }
+            .plan-selector { gap: 0.5rem; }
+            .plan-option label { padding: 0.4rem 0.75rem; font-size: 0.8rem; }
+            .checklist-domain { min-width: auto; }
+            .checklist-item { flex-direction: column; gap: 0.25rem; }
+            .endpoint-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<h1>🔍 GitHub Copilot Network Connectivity Check</h1>
+<p class="subtitle">Verify required network endpoints and generate firewall allowlist rules for GitHub Copilot.</p>
+
+<!-- ===== Quick Check ===== -->
+<div class="section" id="config-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+        <div>
+            <h2>Quick Connectivity Check</h2>
+            <p style="font-size:0.8rem;color:var(--color-text-muted);margin:0;">Tests all required Copilot endpoints — no configuration needed.</p>
+        </div>
+        <button class="btn-primary" id="btn-run" onclick="runCheck()" style="white-space:nowrap;">▶ Run Check</button>
+    </div>
+    <div style="margin-top:1rem;display:flex;gap:1rem;flex-wrap:wrap;font-size:0.8rem;">
+        <button class="btn-secondary btn-small" onclick="showSection('firewall-section')">📋 Firewall Checklist</button>
+        <button class="btn-secondary btn-small" onclick="showSection('script-section')">⚙️ Generate Script</button>
+        <button class="btn-secondary btn-small" onclick="showSection('ide-section')">💻 IDE Diagnostics</button>
+    </div>
+</div>
+
+<!-- ===== Live Results ===== -->
+<div class="results-section" id="results-section">
+    <div class="section">
+        <h2>Connectivity Results</h2>
+        <div class="info-box">
+            <strong>ℹ️ Browser-based check:</strong> Uses <code>fetch(no-cors)</code> to test network reachability. 
+            A ✓ means the TCP/TLS connection succeeded. It does <em>not</em> verify HTTP response codes or certificate validity.
+            For full diagnostics, use the generated script below.
+        </div>
+        <div class="summary-bar" id="summary-bar">
+            <div class="summary-item">✅ <span id="count-pass">0</span> Reachable</div>
+            <div class="summary-item">⚠️ <span id="count-warn">0</span> Slow</div>
+            <div class="summary-item">❌ <span id="count-fail">0</span> Blocked</div>
+            <div class="summary-item">⏳ <span id="count-pending">0</span> Pending</div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div id="results-container"></div>
+        <div class="export-bar" id="export-bar" style="display:none;">
+            <button class="btn-secondary btn-small" onclick="copyResultsText()">📋 Copy as Text</button>
+            <button class="btn-secondary btn-small" onclick="downloadResultsJSON()">💾 Download JSON</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Firewall Checklist ===== -->
+<div id="firewall-section" style="display:none;">
+    <div class="section">
+        <h2>📋 Firewall / Proxy Allowlist Checklist</h2>
+        <div class="info-box">
+            <strong>ℹ️ These are pattern-based rules</strong> for your firewall or proxy server.
+            Wildcard domains (e.g. <code>*.githubcopilot.com</code>) use dynamic subdomains that cannot be tested directly from a browser.
+            Share this list with your IT/security team.
+        </div>
+
+        <h3>Configure for your environment</h3>
+        <div class="plan-selector" style="margin-bottom:0.5rem;">
+            <div class="plan-option">
+                <input type="radio" name="plan" id="plan-free" value="free">
+                <label for="plan-free">Free</label>
+            </div>
+            <div class="plan-option">
+                <input type="radio" name="plan" id="plan-individual" value="individual">
+                <label for="plan-individual">Individual</label>
+            </div>
+            <div class="plan-option">
+                <input type="radio" name="plan" id="plan-business" value="business" checked>
+                <label for="plan-business">Business</label>
+            </div>
+            <div class="plan-option">
+                <input type="radio" name="plan" id="plan-enterprise" value="enterprise">
+                <label for="plan-enterprise">Enterprise</label>
+            </div>
+        </div>
+        <div class="plan-selector" style="margin-bottom:0.75rem;">
+            <div class="plan-option">
+                <input type="checkbox" id="opt-ghecom" value="ghecom">
+                <label for="opt-ghecom">GHE.com (Data Residency)</label>
+            </div>
+            <div class="plan-option">
+                <input type="checkbox" id="opt-emu" value="emu">
+                <label for="opt-emu">Enterprise Managed Users</label>
+            </div>
+            <div class="plan-option">
+                <input type="checkbox" id="opt-routing" value="routing">
+                <label for="opt-routing">Subscription-Based Routing</label>
+            </div>
+        </div>
+        <div class="inline-input" id="ghe-input">
+            <label for="ghe-subdomain">GHE.com subdomain:</label>
+            <input type="text" id="ghe-subdomain" placeholder="e.g. company">
+        </div>
+        <div class="inline-input" id="emu-input">
+            <label for="emu-slug">Enterprise slug:</label>
+            <input type="text" id="emu-slug" placeholder="e.g. my-enterprise">
+        </div>
+
+        <div id="firewall-checklist" style="margin-top:1rem;"></div>
+        <div class="export-bar">
+            <button class="btn-secondary btn-small" onclick="copyFirewallRules()">📋 Copy Rules</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Script Generator ===== -->
+<div id="script-section" style="display:none;">
+    <div class="section">
+        <h2>⚙️ Diagnostic Script Generator</h2>
+        <p style="font-size:0.85rem;color:var(--color-text-muted);margin-bottom:1rem;">
+            Generate a script to run on the affected machine for accurate connectivity, DNS, TLS, and certificate diagnostics.
+        </p>
+        <div class="script-options">
+            <label><input type="checkbox" id="opt-verbose" checked> Verbose (TLS details)</label>
+            <label><input type="checkbox" id="opt-dns"> DNS resolution</label>
+            <label><input type="checkbox" id="opt-cert"> Certificate check</label>
+            <label><input type="checkbox" id="opt-proxy-script"> Proxy detection</label>
+        </div>
+        <div class="inline-input visible" style="margin-bottom:1rem;">
+            <label for="proxy-url">Proxy URL (optional):</label>
+            <input type="text" id="proxy-url" placeholder="e.g. http://proxy.corp.com:8080">
+        </div>
+        <div class="script-tabs">
+            <button class="script-tab active" onclick="switchScriptTab('bash', this)">Bash (macOS/Linux)</button>
+            <button class="script-tab" onclick="switchScriptTab('powershell', this)">PowerShell (Windows)</button>
+        </div>
+        <div class="script-content" id="script-content"></div>
+        <div style="margin-top:0.75rem;display:flex;gap:0.5rem;">
+            <button class="btn-secondary btn-small" onclick="copyScript()">📋 Copy Script</button>
+            <button class="btn-secondary btn-small" onclick="downloadScript()">💾 Download</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== IDE Diagnostics ===== -->
+<div id="ide-section" style="display:none;">
+    <div class="section">
+        <h2>💻 IDE Network Diagnostics</h2>
+        <p style="font-size:0.85rem;color:var(--color-text-muted);margin-bottom:1rem;">
+            Each IDE has built-in diagnostic commands to troubleshoot Copilot connectivity issues.
+        </p>
+        <div class="ide-tabs">
+            <button class="ide-tab active" onclick="switchIdeTab('vscode', this)">VS Code</button>
+            <button class="ide-tab" onclick="switchIdeTab('jetbrains', this)">JetBrains</button>
+            <button class="ide-tab" onclick="switchIdeTab('vs', this)">Visual Studio</button>
+            <button class="ide-tab" onclick="switchIdeTab('xcode', this)">Xcode</button>
+        </div>
+        <div class="ide-content" id="ide-content"></div>
+    </div>
+</div>
+
+<!-- ===== Footer ===== -->
+<div class="footer">
+    <p>Reference: <a href="https://docs.github.com/en/copilot/reference/copilot-allowlist-reference" target="_blank">GitHub Copilot Allowlist Reference</a>
+     · <a href="https://docs.github.com/en/copilot/configuring-github-copilot/configuring-network-settings-for-github-copilot" target="_blank">Network Settings</a>
+     · <a href="https://docs.github.com/en/copilot/managing-copilot/managing-copilot-for-your-enterprise/managing-access-to-copilot-in-your-enterprise/managing-github-copilot-access-to-your-enterprises-network" target="_blank">Subscription-Based Routing</a>
+    </p>
+    <p style="margin-top:0.5rem;">Built for GitHub Support · v2.0</p>
+</div>
+
+<script>
+// ============================================================
+// ENDPOINT DEFINITIONS
+// ============================================================
+
+// Endpoints that can be directly tested via fetch or curl
+const TESTABLE_ENDPOINTS = {
+    auth: {
+        name: 'Authentication',
+        endpoints: [
+            { url: 'https://github.com/login', purpose: 'GitHub authentication' },
+            { url: 'https://api.github.com/user', purpose: 'User management API' },
+            { url: 'https://api.github.com/copilot_internal/', purpose: 'Copilot internal API' },
+        ]
+    },
+    copilot_api: {
+        name: 'Copilot API (Core)',
+        endpoints: [
+            { url: 'https://copilot-proxy.githubusercontent.com/_ping', purpose: 'Copilot proxy — official diagnostic endpoint' },
+            { url: 'https://api.githubcopilot.com/_ping', purpose: 'Copilot Chat API — official diagnostic endpoint' },
+            { url: 'https://copilot-proxy.githubusercontent.com', purpose: 'Copilot code suggestions proxy' },
+            { url: 'https://origin-tracker.githubusercontent.com', purpose: 'Copilot origin tracker' },
+        ]
+    },
+    telemetry: {
+        name: 'Telemetry',
+        endpoints: [
+            { url: 'https://copilot-telemetry.githubusercontent.com/telemetry', purpose: 'Copilot telemetry' },
+            { url: 'https://collector.github.com', purpose: 'Analytics telemetry' },
+            { url: 'https://default.exp-tas.com', purpose: 'Experimentation service' },
+        ]
+    },
+    metrics: {
+        name: 'Metrics & Reporting',
+        endpoints: [
+            { url: 'https://copilot-reports-eastus.b01.azurefd.net', purpose: 'Usage metrics report downloads' },
+        ]
+    }
+};
+
+// Firewall rules — wildcard patterns that cannot be directly tested
+function getFirewallRules(plan, options) {
+    const rules = [];
+    const isRouting = options.routing;
+
+    // Always required
+    rules.push(
+        { domain: 'github.com/login/*', purpose: 'Authentication', tag: 'required' },
+        { domain: 'api.github.com/user', purpose: 'User management', tag: 'required' },
+        { domain: 'api.github.com/copilot_internal/*', purpose: 'Copilot internal API', tag: 'required' },
+        { domain: 'copilot-proxy.githubusercontent.com', purpose: 'Copilot code suggestions', tag: 'required' },
+        { domain: 'origin-tracker.githubusercontent.com', purpose: 'Copilot API', tag: 'required' },
+        { domain: 'copilot-telemetry.githubusercontent.com/telemetry', purpose: 'Telemetry', tag: 'required' },
+        { domain: 'collector.github.com/*', purpose: 'Analytics', tag: 'required' },
+        { domain: 'default.exp-tas.com', purpose: 'Experimentation', tag: 'required' },
+    );
+
+    // Wildcard copilot domains
+    if (!isRouting) {
+        rules.push({
+            domain: '*.githubcopilot.com/*',
+            purpose: 'All Copilot API traffic (all plans)',
+            tag: 'required',
+            note: 'Omit if using subscription-based routing'
+        });
+    }
+
+    // Subscription-based routing rules
+    if (isRouting || plan === 'free' || plan === 'individual') {
+        rules.push({
+            domain: '*.individual.githubcopilot.com',
+            purpose: `Individual/Free plan API routing`,
+            tag: isRouting ? 'routing' : 'required',
+            note: 'Dynamic subdomains — firewall pattern rule only'
+        });
+    }
+    if (isRouting || plan === 'business') {
+        rules.push({
+            domain: '*.business.githubcopilot.com',
+            purpose: 'Business plan API routing',
+            tag: isRouting ? 'routing' : 'required',
+            note: 'Dynamic subdomains — firewall pattern rule only'
+        });
+    }
+    if (isRouting || plan === 'enterprise') {
+        rules.push({
+            domain: '*.enterprise.githubcopilot.com',
+            purpose: 'Enterprise plan API routing',
+            tag: isRouting ? 'routing' : 'required',
+            note: 'Dynamic subdomains — firewall pattern rule only'
+        });
+    }
+
+    // EMU
+    if (options.emu && options.emuSlug) {
+        rules.push({
+            domain: `github.com/enterprises/${options.emuSlug}/*`,
+            purpose: 'EMU enterprise authentication',
+            tag: 'required'
+        });
+    }
+
+    // GHE.com
+    if (options.ghecom && options.gheSubdomain) {
+        rules.push(
+            { domain: `${options.gheSubdomain}.ghe.com`, purpose: 'GHE.com portal', tag: 'required' },
+            { domain: `*.${options.gheSubdomain}.ghe.com`, purpose: 'GHE.com services', tag: 'required' },
+        );
+    }
+
+    // Metrics
+    rules.push({
+        domain: 'copilot-reports-*.b01.azurefd.net',
+        purpose: 'Usage metrics reports',
+        tag: 'optional'
+    });
+
+    return rules;
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let currentScriptTab = 'bash';
+let currentIdeTab = 'vscode';
+let currentResults = [];
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function getSelectedPlan() {
+    return document.querySelector('input[name="plan"]:checked').value;
+}
+
+function getOptions() {
+    return {
+        ghecom: document.getElementById('opt-ghecom').checked,
+        gheSubdomain: document.getElementById('ghe-subdomain').value.trim(),
+        emu: document.getElementById('opt-emu').checked,
+        emuSlug: document.getElementById('emu-slug').value.trim(),
+        routing: document.getElementById('opt-routing').checked,
+        proxyUrl: document.getElementById('proxy-url').value.trim(),
+    };
+}
+
+function showSection(id) {
+    const el = document.getElementById(id);
+    const isVisible = el.style.display !== 'none';
+    el.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) {
+        if (id === 'firewall-section') renderFirewallChecklist();
+        if (id === 'script-section') renderScript();
+        if (id === 'ide-section') renderIdeGuide();
+        el.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Toggle conditional inputs
+document.getElementById('opt-ghecom').addEventListener('change', function() {
+    document.getElementById('ghe-input').classList.toggle('visible', this.checked);
+    renderFirewallChecklist();
+});
+document.getElementById('opt-emu').addEventListener('change', function() {
+    document.getElementById('emu-input').classList.toggle('visible', this.checked);
+    renderFirewallChecklist();
+});
+document.querySelectorAll('input[name="plan"], #opt-routing').forEach(el => {
+    el.addEventListener('change', renderFirewallChecklist);
+});
+document.querySelectorAll('#ghe-subdomain, #emu-slug').forEach(el => {
+    el.addEventListener('input', renderFirewallChecklist);
+});
+
+// ============================================================
+// CONNECTIVITY CHECK (Browser fetch)
+// ============================================================
+function getTestableGroups() {
+    return [
+        { ...TESTABLE_ENDPOINTS.auth },
+        { ...TESTABLE_ENDPOINTS.copilot_api },
+        { ...TESTABLE_ENDPOINTS.telemetry },
+        { ...TESTABLE_ENDPOINTS.metrics },
+    ];
+}
+
+async function checkEndpoint(url) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+        const start = performance.now();
+        await fetch(url, { mode: 'no-cors', signal: controller.signal, cache: 'no-store' });
+        const elapsed = Math.round(performance.now() - start);
+        clearTimeout(timeout);
+        if (elapsed > 3000) return { status: 'warn', time: elapsed };
+        return { status: 'pass', time: elapsed };
+    } catch (err) {
+        clearTimeout(timeout);
+        if (err.name === 'AbortError') return { status: 'fail', error: 'Timeout (8s)' };
+        return { status: 'fail', error: 'Network error' };
+    }
+}
+
+async function runCheck() {
+    const btn = document.getElementById('btn-run');
+    btn.disabled = true;
+    btn.textContent = '⏳ Checking...';
+
+    const groups = getTestableGroups();
+    const resultsSection = document.getElementById('results-section');
+    const container = document.getElementById('results-container');
+    resultsSection.classList.add('visible');
+    container.innerHTML = '';
+    currentResults = [];
+
+    let total = groups.reduce((s, g) => s + g.endpoints.length, 0);
+    let completed = 0, passCount = 0, warnCount = 0, failCount = 0;
+
+    document.getElementById('count-pass').textContent = '0';
+    document.getElementById('count-warn').textContent = '0';
+    document.getElementById('count-fail').textContent = '0';
+    document.getElementById('count-pending').textContent = total;
+    document.getElementById('progress-fill').style.width = '0%';
+    document.getElementById('export-bar').style.display = 'none';
+
+    for (const group of groups) {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'endpoint-group';
+        groupDiv.innerHTML = `<h3>${group.name}</h3>`;
+
+        const rows = [];
+        for (const ep of group.endpoints) {
+            const row = document.createElement('div');
+            row.className = 'endpoint-row';
+            row.innerHTML = `
+                <div class="endpoint-left">
+                    <span class="endpoint-url">${ep.url}</span>
+                    <span class="endpoint-purpose">${ep.purpose}</span>
+                </div>
+                <span class="status-badge status-pending">checking...</span>
+            `;
+            groupDiv.appendChild(row);
+            rows.push({ row, ep });
+        }
+        container.appendChild(groupDiv);
+
+        const promises = rows.map(async ({ row, ep }) => {
+            const result = await checkEndpoint(ep.url);
+            const badge = row.querySelector('.status-badge');
+
+            if (result.status === 'pass') {
+                badge.className = 'status-badge status-pass';
+                badge.textContent = `✓ ${result.time}ms`;
+                passCount++;
+            } else if (result.status === 'warn') {
+                badge.className = 'status-badge status-warn';
+                badge.textContent = `⚠ ${result.time}ms (slow)`;
+                warnCount++;
+            } else {
+                badge.className = 'status-badge status-fail';
+                badge.textContent = `✗ ${result.error}`;
+                failCount++;
+            }
+
+            currentResults.push({ url: ep.url, purpose: ep.purpose, group: group.name, ...result });
+            completed++;
+            document.getElementById('count-pass').textContent = passCount;
+            document.getElementById('count-warn').textContent = warnCount;
+            document.getElementById('count-fail').textContent = failCount;
+            document.getElementById('count-pending').textContent = total - completed;
+            document.getElementById('progress-fill').style.width = `${(completed / total) * 100}%`;
+        });
+        await Promise.all(promises);
+    }
+
+    document.getElementById('export-bar').style.display = 'flex';
+    btn.disabled = false;
+    btn.textContent = '▶ Run Connectivity Check';
+}
+
+// ============================================================
+// RESULTS EXPORT
+// ============================================================
+function buildResultsText() {
+    const ts = new Date().toISOString();
+    let text = `GitHub Copilot Network Connectivity Check\n`;
+    text += `Time: ${ts}\n`;
+    text += `${'='.repeat(60)}\n\n`;
+
+    let lastGroup = '';
+    for (const r of currentResults) {
+        if (r.group !== lastGroup) {
+            text += `── ${r.group} ──\n`;
+            lastGroup = r.group;
+        }
+        const status = r.status === 'pass' ? `✓ PASS (${r.time}ms)` :
+                       r.status === 'warn' ? `⚠ SLOW (${r.time}ms)` :
+                       `✗ FAIL (${r.error})`;
+        text += `  ${status.padEnd(22)} ${r.url}\n`;
+    }
+
+    const pass = currentResults.filter(r => r.status === 'pass').length;
+    const warn = currentResults.filter(r => r.status === 'warn').length;
+    const fail = currentResults.filter(r => r.status === 'fail').length;
+    text += `\nSummary: ${pass} passed, ${warn} slow, ${fail} failed\n`;
+    if (fail > 0) {
+        text += `\n⚠ Some endpoints are blocked. Check firewall/proxy settings.\n`;
+        text += `Reference: https://docs.github.com/en/copilot/reference/copilot-allowlist-reference\n`;
+    }
+    return text;
+}
+
+function copyResultsText() {
+    navigator.clipboard.writeText(buildResultsText()).then(() => flashButton(event.target, 'Copied!'));
+}
+
+function downloadResultsJSON() {
+    const data = {
+        tool: 'GitHub Copilot Network Connectivity Check',
+        version: '2.0',
+        timestamp: new Date().toISOString(),
+        results: currentResults,
+        summary: {
+            pass: currentResults.filter(r => r.status === 'pass').length,
+            warn: currentResults.filter(r => r.status === 'warn').length,
+            fail: currentResults.filter(r => r.status === 'fail').length,
+        }
+    };
+    downloadFile('copilot-network-check.json', JSON.stringify(data, null, 2), 'application/json');
+}
+
+// ============================================================
+// FIREWALL CHECKLIST
+// ============================================================
+function renderFirewallChecklist() {
+    const plan = getSelectedPlan();
+    const options = getOptions();
+    const rules = getFirewallRules(plan, options);
+    const container = document.getElementById('firewall-checklist');
+
+    const tagLabels = {
+        required: ['Required', 'tag-required'],
+        optional: ['Optional', 'tag-optional'],
+        routing: ['Routing', 'tag-routing'],
+    };
+
+    container.innerHTML = rules.map(r => {
+        const [label, cls] = tagLabels[r.tag] || ['', ''];
+        return `<div class="checklist-item">
+            <span class="checklist-icon">☐</span>
+            <span class="checklist-domain">${r.domain}</span>
+            <span class="checklist-note">${r.purpose}${r.note ? ` — ${r.note}` : ''}<span class="tag ${cls}">${label}</span></span>
+        </div>`;
+    }).join('');
+}
+
+function copyFirewallRules() {
+    const plan = getSelectedPlan();
+    const options = getOptions();
+    const rules = getFirewallRules(plan, options);
+    let text = `GitHub Copilot Firewall Allowlist — Plan: ${plan}\n${'='.repeat(50)}\n\n`;
+    for (const r of rules) {
+        text += `${r.domain.padEnd(45)} # ${r.purpose}${r.note ? ` (${r.note})` : ''}\n`;
+    }
+    text += `\nReference: https://docs.github.com/en/copilot/reference/copilot-allowlist-reference\n`;
+    navigator.clipboard.writeText(text).then(() => flashButton(event.target, 'Copied!'));
+}
+
+// ============================================================
+// SCRIPT GENERATOR
+// ============================================================
+function getScriptEndpoints() {
+    const groups = [];
+    for (const [key, group] of Object.entries(TESTABLE_ENDPOINTS)) {
+        groups.push({ name: group.name, endpoints: [...group.endpoints] });
+    }
+    return groups;
+}
+
+function generateBashScript() {
+    const options = getOptions();
+    const groups = getScriptEndpoints();
+    const verbose = document.getElementById('opt-verbose').checked;
+    const dns = document.getElementById('opt-dns').checked;
+    const cert = document.getElementById('opt-cert').checked;
+    const proxyDetect = document.getElementById('opt-proxy-script').checked;
+    const proxyUrl = options.proxyUrl;
+
+    let s = `#!/bin/bash
+# ============================================================
+# GitHub Copilot Network Connectivity Check
+# Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+# ============================================================
+
+set -euo pipefail
+
+GREEN='\\033[0;32m'; RED='\\033[0;31m'; YELLOW='\\033[0;33m'; NC='\\033[0m'; BOLD='\\033[1m'
+
+PASS=0; FAIL=0; WARN=0
+FAILURES=""
+
+echo ""
+echo "\${BOLD}====================================================\${NC}"
+echo "\${BOLD} GitHub Copilot Network Connectivity Check\${NC}"
+echo " Date: $(date)"
+echo "\${BOLD}====================================================\${NC}"
+echo ""
+`;
+
+    // Proxy detection
+    if (proxyDetect) {
+        s += `# ── Proxy Environment ──
+echo "\${BOLD}── Proxy Environment ──\${NC}"
+for var in HTTPS_PROXY https_proxy HTTP_PROXY http_proxy NO_PROXY no_proxy; do
+    val=\${!var:-}
+    if [ -n "$val" ]; then
+        echo "  \${YELLOW}⚙\${NC} $var = $val"
+    fi
+done
+echo ""
+`;
+    }
+
+    // Proxy curl flag
+    const proxyFlag = proxyUrl ? ` -x "${proxyUrl}"` : '';
+
+    // Main check function
+    if (verbose) {
+        s += `check_url() {
+    local url="$1"
+    local purpose="$2"
+    local output
+    local http_code
+    output=$(curl -sS${proxyFlag} --connect-timeout 5 --max-time 10 -w "\\n%{http_code} %{time_total} %{ssl_verify_result}" -o /dev/null "$url" 2>&1) || true
+    http_code=$(echo "$output" | tail -1 | awk '{print $1}')
+    local time_total=$(echo "$output" | tail -1 | awk '{print $2}')
+    local ssl_result=$(echo "$output" | tail -1 | awk '{print $3}')
+
+    if [ "$http_code" != "000" ] && [ -n "$http_code" ]; then
+        if (( $(echo "$time_total > 3.0" | bc -l 2>/dev/null || echo 0) )); then
+            echo "  \${YELLOW}⚠ SLOW\${NC}  ($\{http_code}, $\{time_total}s) - $url  ($purpose)"
+            WARN=$((WARN + 1))
+        else
+            echo "  \${GREEN}✓ PASS\${NC}  ($\{http_code}, $\{time_total}s) - $url  ($purpose)"
+            PASS=$((PASS + 1))
+        fi
+    else
+        echo "  \${RED}✗ FAIL\${NC}         - $url  ($purpose)"
+        FAILURES="$FAILURES\\n  - $url ($purpose)"
+        FAIL=$((FAIL + 1))
+    fi
+}
+`;
+    } else {
+        s += `check_url() {
+    local url="$1"
+    local purpose="$2"
+    local http_code
+    http_code=$(curl -s${proxyFlag} -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 "$url" 2>/dev/null) || true
+    if [ "$http_code" != "000" ] && [ -n "$http_code" ]; then
+        echo "  \${GREEN}✓ PASS\${NC} ($http_code) - $url  ($purpose)"
+        PASS=$((PASS + 1))
+    else
+        echo "  \${RED}✗ FAIL\${NC}       - $url  ($purpose)"
+        FAILURES="$FAILURES\\n  - $url ($purpose)"
+        FAIL=$((FAIL + 1))
+    fi
+}
+`;
+    }
+
+    s += '\n';
+
+    // DNS checks
+    if (dns) {
+        s += `# ── DNS Resolution ──
+echo "\${BOLD}── DNS Resolution ──\${NC}"
+check_dns() {
+    local domain="$1"
+    local result
+    result=$(nslookup "$domain" 2>&1 | grep -A1 "Name:" | tail -1) || true
+    if echo "$result" | grep -q "Address"; then
+        echo "  \${GREEN}✓\${NC} $domain → $(echo "$result" | awk '{print $2}')"
+    else
+        echo "  \${RED}✗\${NC} $domain — DNS resolution failed"
+    fi
+}
+check_dns "github.com"
+check_dns "api.github.com"
+check_dns "copilot-proxy.githubusercontent.com"
+check_dns "api.githubcopilot.com"
+check_dns "default.exp-tas.com"
+`;
+        s += `echo ""\n\n`;
+    }
+
+    // Endpoint checks
+    for (const group of groups) {
+        s += `echo "\${BOLD}── ${group.name} ──\${NC}"\n`;
+        for (const ep of group.endpoints) {
+            s += `check_url "${ep.url}" "${ep.purpose}"\n`;
+        }
+        s += `echo ""\n\n`;
+    }
+
+    // Certificate check
+    if (cert) {
+        s += `# ── Certificate Chain ──
+echo "\${BOLD}── Certificate Chain Check ──\${NC}"
+check_cert() {
+    local host="$1"
+    echo "  Checking $host ..."
+    echo | openssl s_client -connect "$host:443" -servername "$host" 2>/dev/null | openssl x509 -noout -subject -issuer -dates 2>/dev/null || echo "  \${RED}✗ Could not retrieve certificate\${NC}"
+    echo ""
+}
+check_cert "copilot-proxy.githubusercontent.com"
+check_cert "api.githubcopilot.com"
+
+echo "\${BOLD}── Environment Variables ──\${NC}"
+for var in NODE_EXTRA_CA_CERTS SSL_CERT_FILE REQUESTS_CA_BUNDLE CURL_CA_BUNDLE; do
+    val=\${!var:-}
+    if [ -n "$val" ]; then
+        echo "  \${YELLOW}⚙\${NC} $var = $val"
+        [ -f "$val" ] && echo "    File exists: ✓" || echo "    \${RED}File NOT found\${NC}"
+    fi
+done
+echo ""
+`;
+    }
+
+    // Summary
+    s += `# ── Summary ──
+echo "\${BOLD}====================================================\${NC}"
+echo "\${BOLD} Results: \${GREEN}$PASS passed\${NC}, \${YELLOW}$WARN slow\${NC}, \${RED}$FAIL failed\${NC}"
+echo "\${BOLD}====================================================\${NC}"
+
+if [ $FAIL -gt 0 ]; then
+    echo ""
+    echo "\${RED}Blocked endpoints:\${NC}"
+    echo -e "$FAILURES"
+    echo ""
+    echo "Please check your firewall/proxy settings."
+    echo "Reference: https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+    exit 1
+fi
+`;
+    return s;
+}
+
+function generatePowerShellScript() {
+    const options = getOptions();
+    const groups = getScriptEndpoints();
+    const verbose = document.getElementById('opt-verbose').checked;
+    const dns = document.getElementById('opt-dns').checked;
+    const cert = document.getElementById('opt-cert').checked;
+    const proxyDetect = document.getElementById('opt-proxy-script').checked;
+    const proxyUrl = options.proxyUrl;
+
+    let s = `# ============================================================
+# GitHub Copilot Network Connectivity Check
+# Generated: ${new Date().toISOString()}
+# ============================================================
+
+$pass = 0; $fail = 0; $warn = 0
+$failures = @()
+
+Write-Host ""
+Write-Host "====================================================" -ForegroundColor White
+Write-Host " GitHub Copilot Network Connectivity Check" -ForegroundColor White
+Write-Host " Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')"
+Write-Host "====================================================" -ForegroundColor White
+Write-Host ""
+`;
+
+    // Proxy detection
+    if (proxyDetect) {
+        s += `# ── Proxy Environment ──
+Write-Host "── Proxy Environment ──" -ForegroundColor White
+foreach ($var in @("HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY")) {
+    $val = [Environment]::GetEnvironmentVariable($var)
+    if ($val) { Write-Host "  ⚙ $var = $val" -ForegroundColor Yellow }
+}
+$sysProxy = [System.Net.WebRequest]::GetSystemWebProxy()
+$testUri = [Uri]"https://copilot-proxy.githubusercontent.com"
+$proxyUri = $sysProxy.GetProxy($testUri)
+if ($proxyUri -ne $testUri) {
+    Write-Host "  ⚙ System proxy for Copilot: $proxyUri" -ForegroundColor Yellow
+}
+Write-Host ""
+`;
+    }
+
+    // Proxy param
+    const proxyParam = proxyUrl ? ` -Proxy "${proxyUrl}"` : '';
+
+    // Check function
+    s += `function Test-Endpoint {
+    param([string]$Url, [string]$Purpose)
+    try {
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 10${proxyParam} -ErrorAction Stop
+        $sw.Stop()
+        $elapsed = [math]::Round($sw.Elapsed.TotalSeconds, 2)
+        if ($elapsed -gt 3.0) {
+            Write-Host "  ⚠ SLOW  ($($response.StatusCode), $\{elapsed}s) - $Url  ($Purpose)" -ForegroundColor Yellow
+            $script:warn++
+        } else {
+            Write-Host "  ✓ PASS  ($($response.StatusCode), $\{elapsed}s) - $Url  ($Purpose)" -ForegroundColor Green
+            $script:pass++
+        }
+    } catch {
+        $statusCode = $null
+        try { $statusCode = $_.Exception.Response.StatusCode.value__ } catch {}
+        if ($statusCode) {
+            Write-Host "  ✓ PASS  ($statusCode) - $Url  ($Purpose)" -ForegroundColor Green
+            $script:pass++
+        } else {
+            Write-Host "  ✗ FAIL         - $Url  ($Purpose)" -ForegroundColor Red
+            $script:failures += "  - $Url ($Purpose)"
+            $script:fail++
+        }
+    }
+}
+`;
+
+    // DNS
+    if (dns) {
+        s += `
+# ── DNS Resolution ──
+Write-Host "── DNS Resolution ──" -ForegroundColor White
+function Test-DNS {
+    param([string]$Domain)
+    try {
+        $result = Resolve-DnsName -Name $Domain -ErrorAction Stop | Select-Object -First 1
+        Write-Host "  ✓ $Domain → $($result.IPAddress)" -ForegroundColor Green
+    } catch {
+        Write-Host "  ✗ $Domain — DNS resolution failed" -ForegroundColor Red
+    }
+}
+Test-DNS "github.com"
+Test-DNS "api.github.com"
+Test-DNS "copilot-proxy.githubusercontent.com"
+Test-DNS "api.githubcopilot.com"
+Test-DNS "default.exp-tas.com"
+`;
+        s += `Write-Host ""\n\n`;
+    }
+
+    // Endpoints
+    for (const group of groups) {
+        s += `Write-Host "── ${group.name} ──" -ForegroundColor White\n`;
+        for (const ep of group.endpoints) {
+            s += `Test-Endpoint -Url "${ep.url}" -Purpose "${ep.purpose}"\n`;
+        }
+        s += `Write-Host ""\n\n`;
+    }
+
+    // Certificate
+    if (cert) {
+        s += `# ── Certificate Chain ──
+Write-Host "── Certificate Chain Check ──" -ForegroundColor White
+function Test-Certificate {
+    param([string]$Host_)
+    Write-Host "  Checking $Host_ ..."
+    try {
+        $tcp = New-Object System.Net.Sockets.TcpClient($Host_, 443)
+        $ssl = New-Object System.Net.Security.SslStream($tcp.GetStream(), $false)
+        $ssl.AuthenticateAsClient($Host_)
+        $cert_ = $ssl.RemoteCertificate
+        Write-Host "    Subject:  $($cert_.Subject)" -ForegroundColor Gray
+        Write-Host "    Issuer:   $($cert_.Issuer)" -ForegroundColor Gray
+        Write-Host "    Expires:  $($cert_.GetExpirationDateString())" -ForegroundColor Gray
+        $ssl.Close(); $tcp.Close()
+    } catch {
+        Write-Host "    ✗ Could not retrieve certificate: $($_.Exception.Message)" -ForegroundColor Red
+    }
+    Write-Host ""
+}
+Test-Certificate "copilot-proxy.githubusercontent.com"
+Test-Certificate "api.githubcopilot.com"
+
+Write-Host "── Environment Variables ──" -ForegroundColor White
+foreach ($var in @("NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE")) {
+    $val = [Environment]::GetEnvironmentVariable($var)
+    if ($val) {
+        Write-Host "  ⚙ $var = $val" -ForegroundColor Yellow
+        if (Test-Path $val) { Write-Host "    File exists: ✓" } else { Write-Host "    File NOT found" -ForegroundColor Red }
+    }
+}
+Write-Host ""
+`;
+    }
+
+    // Summary
+    s += `# ── Summary ──
+Write-Host "====================================================" -ForegroundColor White
+Write-Host " Results: $pass passed, $warn slow, $fail failed" -ForegroundColor White
+Write-Host "====================================================" -ForegroundColor White
+
+if ($fail -gt 0) {
+    Write-Host ""
+    Write-Host "Blocked endpoints:" -ForegroundColor Red
+    $failures | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+    Write-Host ""
+    Write-Host "Please check your firewall/proxy settings." -ForegroundColor Yellow
+    Write-Host "Reference: https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"
+}
+`;
+    return s;
+}
+
+function renderScript() {
+    const content = document.getElementById('script-content');
+    content.textContent = currentScriptTab === 'bash' ? generateBashScript() : generatePowerShellScript();
+}
+
+function switchScriptTab(tab, el) {
+    currentScriptTab = tab;
+    document.querySelectorAll('.script-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderScript();
+}
+
+function copyScript() {
+    const content = document.getElementById('script-content').textContent;
+    navigator.clipboard.writeText(content).then(() => flashButton(event.target, 'Copied!'));
+}
+
+function downloadScript() {
+    const ext = currentScriptTab === 'bash' ? 'sh' : 'ps1';
+    const content = document.getElementById('script-content').textContent;
+    downloadFile(`copilot-network-check.${ext}`, content, 'text/plain');
+}
+
+// Re-render script when options change
+document.querySelectorAll('#opt-verbose, #opt-dns, #opt-cert, #opt-proxy-script').forEach(el => {
+    el.addEventListener('change', () => {
+        if (document.getElementById('script-section').style.display !== 'none') renderScript();
+    });
+});
+
+// ============================================================
+// IDE DIAGNOSTICS
+// ============================================================
+const IDE_GUIDES = {
+    vscode: `<strong>VS Code — Copilot Network Diagnostics</strong>
+<ol>
+    <li>Open Command Palette: <code>Ctrl+Shift+P</code> (Windows/Linux) or <code>Cmd+Shift+P</code> (macOS)</li>
+    <li>Run <code>GitHub Copilot: Collect Diagnostics</code> — generates a full diagnostic report</li>
+    <li>Run <code>Developer: Chat Diagnostics</code> — checks Chat/Agent mode connectivity</li>
+    <li>Run <code>Developer: Policy Diagnostics</code> — checks organization policy restrictions</li>
+</ol>
+<strong>Output Logs:</strong>
+<ol>
+    <li>Open <code>View → Output</code> panel</li>
+    <li>Select from dropdown: <code>GitHub Copilot</code>, <code>GitHub Copilot Chat</code>, or <code>GitHub Copilot Language Server</code></li>
+    <li>Reproduce the issue, then copy the log output</li>
+</ol>
+<details><summary>Proxy / Certificate Settings</summary>
+<ul>
+    <li><code>http.proxy</code> — in VS Code Settings for proxy URL</li>
+    <li><code>http.proxyStrictSSL</code> — set to <code>false</code> if using SSL inspection (temporary)</li>
+    <li><code>NODE_EXTRA_CA_CERTS</code> — environment variable for custom CA certificates</li>
+</ul>
+<p>Ref: <a href="https://code.visualstudio.com/docs/setup/network" target="_blank" style="color:var(--color-accent)">VS Code Network Settings</a></p>
+</details>`,
+
+    jetbrains: `<strong>JetBrains IDEs — Copilot Network Diagnostics</strong>
+<ol>
+    <li>Go to <code>Tools → GitHub Copilot → Log Diagnostics</code></li>
+    <li>Go to <code>Tools → GitHub Copilot → Log CA Certificates</code> — shows trusted certificates</li>
+    <li>Check the <code>idea.log</code>: <code>Help → Show Log in Explorer/Finder</code></li>
+</ol>
+<strong>Proxy Settings:</strong>
+<ul>
+    <li><code>Settings → Appearance & Behavior → System Settings → HTTP Proxy</code></li>
+    <li>Supports manual proxy, PAC URL, and authentication</li>
+</ul>
+<details><summary>Certificate Trust Store</summary>
+<ul>
+    <li>JetBrains uses the JVM truststore by default</li>
+    <li><code>Settings → Tools → Server Certificates</code> — manage accepted certificates</li>
+    <li>To add a custom CA: import into the JVM cacerts or use <code>-Djavax.net.ssl.trustStore</code></li>
+</ul>
+</details>`,
+
+    vs: `<strong>Visual Studio — Copilot Network Diagnostics</strong>
+<ol>
+    <li>Go to <code>View → Output</code></li>
+    <li>Select <code>GitHub Copilot</code> from the "Show output from" dropdown</li>
+    <li>Look for connection errors, authentication failures, or timeout messages</li>
+</ol>
+<strong>Proxy Settings:</strong>
+<ul>
+    <li>Visual Studio uses the system proxy settings (IE/Windows proxy)</li>
+    <li>Ref: <a href="https://learn.microsoft.com/en-us/visualstudio/install/install-and-use-visual-studio-behind-a-firewall-or-proxy-server" target="_blank" style="color:var(--color-accent)">Visual Studio behind a firewall</a></li>
+</ul>
+<details><summary>Troubleshooting</summary>
+<ul>
+    <li>Check <code>%LOCALAPPDATA%\\GitHub\\Copilot\\Logs</code> for detailed log files</li>
+    <li>Enable verbose logging: <code>Tools → Options → GitHub → Copilot → Advanced → Verbose Logging</code></li>
+</ul>
+</details>`,
+
+    xcode: `<strong>Xcode — Copilot Network Diagnostics</strong>
+<p>GitHub Copilot for Xcode runs as a separate background process.</p>
+<ol>
+    <li>Check the Copilot extension status in the menu bar icon</li>
+    <li>View logs: <code>~/Library/Logs/GitHubCopilot/</code></li>
+    <li>Restart the extension: quit and relaunch the Copilot for Xcode app</li>
+</ol>
+<strong>Proxy Settings:</strong>
+<ul>
+    <li>Uses macOS system proxy settings (System Settings → Network → Proxies)</li>
+    <li>Set <code>HTTPS_PROXY</code> environment variable if needed</li>
+</ul>`
+};
+
+function renderIdeGuide() {
+    document.getElementById('ide-content').innerHTML = IDE_GUIDES[currentIdeTab];
+}
+
+function switchIdeTab(tab, el) {
+    currentIdeTab = tab;
+    document.querySelectorAll('.ide-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderIdeGuide();
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function flashButton(btn, msg) {
+    const orig = btn.textContent;
+    btn.textContent = `✓ ${msg}`;
+    setTimeout(() => btn.textContent = orig, 2000);
+}
+
+function downloadFile(filename, content, type) {
+    const blob = new Blob([content], { type });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+// Initialize IDE guide
+renderIdeGuide();
+</script>
+</body>
+</html>
