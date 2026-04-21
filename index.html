@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="en" data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Copilot Network Connectivity Check</title>
+    <style>
+        /* ============================================================
+           Primer-based Design Tokens
+           Reference: https://primer.style/foundations/color/overview
+           ============================================================ */
+
+        /* Dark theme (default) */
+        :root, [data-theme="dark"] {
+            --bgColor-default: #0d1117;
+            --bgColor-muted: #161b22;
+            --bgColor-inset: #010409;
+            --overlay-bgColor: #1c2128;
+
+            --borderColor-default: #30363d;
+            --borderColor-muted: #21262d;
+            --borderColor-emphasis: #6e7681;
+
+            --fgColor-default: #e6edf3;
+            --fgColor-muted: #8b949e;
+            --fgColor-onEmphasis: #ffffff;
+
+            --accent-fgColor: #58a6ff;
+            --accent-bgColor-muted: rgba(56, 139, 253, 0.1);
+            --accent-borderColor: rgba(56, 139, 253, 0.4);
+            --accent-emphasis: #1f6feb;
+
+            --success-fgColor: #3fb950;
+            --success-bgColor-muted: rgba(46, 160, 67, 0.15);
+            --success-emphasis: #238636;
+
+            --danger-fgColor: #f85149;
+            --danger-bgColor-muted: rgba(248, 81, 73, 0.15);
+            --danger-emphasis: #da3633;
+
+            --attention-fgColor: #d29922;
+            --attention-bgColor-muted: rgba(187, 128, 9, 0.15);
+            --attention-emphasis: #9e6a03;
+
+            --done-fgColor: #a371f7;
+
+            --button-primary-bgColor: #238636;
+            --button-primary-bgColor-hover: #2ea043;
+            --button-primary-borderColor: rgba(240, 246, 252, 0.1);
+
+            --button-default-bgColor: #21262d;
+            --button-default-bgColor-hover: #30363d;
+            --button-default-borderColor: #363b42;
+
+            --shadow-medium: 0 3px 6px rgba(1, 4, 9, 0.4);
+            --shadow-large: 0 8px 24px rgba(1, 4, 9, 0.5);
+
+            --header-bgColor: #161b22;
+            --header-logo-fill: #e6edf3;
+        }
+
+        /* Light theme */
+        [data-theme="light"] {
+            --bgColor-default: #ffffff;
+            --bgColor-muted: #f6f8fa;
+            --bgColor-inset: #eff2f5;
+            --overlay-bgColor: #ffffff;
+
+            --borderColor-default: #d1d9e0;
+            --borderColor-muted: #d8dee4;
+            --borderColor-emphasis: #6e7781;
+
+            --fgColor-default: #1f2328;
+            --fgColor-muted: #656d76;
+            --fgColor-onEmphasis: #ffffff;
+
+            --accent-fgColor: #0969da;
+            --accent-bgColor-muted: rgba(84, 174, 255, 0.1);
+            --accent-borderColor: rgba(84, 174, 255, 0.4);
+            --accent-emphasis: #0969da;
+
+            --success-fgColor: #1a7f37;
+            --success-bgColor-muted: rgba(74, 194, 107, 0.15);
+            --success-emphasis: #1f883d;
+
+            --danger-fgColor: #d1242f;
+            --danger-bgColor-muted: rgba(255, 129, 130, 0.15);
+            --danger-emphasis: #cf222e;
+
+            --attention-fgColor: #9a6700;
+            --attention-bgColor-muted: rgba(212, 167, 44, 0.15);
+            --attention-emphasis: #bf8700;
+
+            --done-fgColor: #8250df;
+
+            --button-primary-bgColor: #1f883d;
+            --button-primary-bgColor-hover: #1a7f37;
+            --button-primary-borderColor: rgba(27, 31, 36, 0.15);
+
+            --button-default-bgColor: #f6f8fa;
+            --button-default-bgColor-hover: #f3f4f6;
+            --button-default-borderColor: #d1d9e0;
+
+            --shadow-medium: 0 3px 6px rgba(140, 149, 159, 0.15);
+            --shadow-large: 0 8px 24px rgba(140, 149, 159, 0.2);
+
+            --header-bgColor: #f6f8fa;
+            --header-logo-fill: #1f2328;
+        }
+
+        /* Auto: follow system preference */
+        @media (prefers-color-scheme: light) {
+            :root:not([data-theme]) {
+                --bgColor-default: #ffffff;
+                --bgColor-muted: #f6f8fa;
+                --bgColor-inset: #eff2f5;
+                --overlay-bgColor: #ffffff;
+                --borderColor-default: #d1d9e0;
+                --borderColor-muted: #d8dee4;
+                --borderColor-emphasis: #6e7781;
+                --fgColor-default: #1f2328;
+                --fgColor-muted: #656d76;
+                --fgColor-onEmphasis: #ffffff;
+                --accent-fgColor: #0969da;
+                --accent-bgColor-muted: rgba(84, 174, 255, 0.1);
+                --accent-borderColor: rgba(84, 174, 255, 0.4);
+                --accent-emphasis: #0969da;
+                --success-fgColor: #1a7f37;
+                --success-bgColor-muted: rgba(74, 194, 107, 0.15);
+                --success-emphasis: #1f883d;
+                --danger-fgColor: #d1242f;
+                --danger-bgColor-muted: rgba(255, 129, 130, 0.15);
+                --danger-emphasis: #cf222e;
+                --attention-fgColor: #9a6700;
+                --attention-bgColor-muted: rgba(212, 167, 44, 0.15);
+                --attention-emphasis: #bf8700;
+                --done-fgColor: #8250df;
+                --button-primary-bgColor: #1f883d;
+                --button-primary-bgColor-hover: #1a7f37;
+                --button-primary-borderColor: rgba(27, 31, 36, 0.15);
+                --button-default-bgColor: #f6f8fa;
+                --button-default-bgColor-hover: #f3f4f6;
+                --button-default-borderColor: #d1d9e0;
+                --shadow-medium: 0 3px 6px rgba(140, 149, 159, 0.15);
+                --shadow-large: 0 8px 24px rgba(140, 149, 159, 0.2);
+                --header-bgColor: #f6f8fa;
+                --header-logo-fill: #1f2328;
+            }
+        }
+
+        /* Shared tokens (theme-independent) */
+        :root {
+            --fontStack-system: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+            --fontStack-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+            --borderRadius-medium: 6px;
+            --borderRadius-large: 12px;
+        }
+
+        /* ============================================================
+           Reset & Base
+           ============================================================ */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--fontStack-system);
+            background: var(--bgColor-default);
+            color: var(--fgColor-default);
+            line-height: 1.5;
+            font-size: 14px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--accent-fgColor); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        code {
+            font-family: var(--fontStack-monospace);
+            font-size: 12px;
+            background: rgba(110, 118, 129, 0.15);
+            padding: 0.15em 0.4em;
+            border-radius: 3px;
+        }
+
+        /* ============================================================
+           Header — GitHub-style top nav
+           ============================================================ */
+        .AppHeader {
+            background: var(--header-bgColor, var(--bgColor-muted));
+            border-bottom: 1px solid var(--borderColor-default);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .AppHeader-logo svg { fill: var(--header-logo-fill, var(--fgColor-default)); }
+        .AppHeader-context {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--fgColor-default);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .AppHeader-context .separator { color: var(--fgColor-muted); font-weight: 400; }
+
+        /* Theme toggle */
+        .theme-toggle {
+            margin-left: auto;
+            background: var(--button-default-bgColor);
+            border: 1px solid var(--button-default-borderColor);
+            border-radius: var(--borderRadius-medium);
+            color: var(--fgColor-muted);
+            padding: 4px 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-family: inherit;
+            transition: 0.1s;
+        }
+        .theme-toggle:hover { color: var(--fgColor-default); background: var(--button-default-bgColor-hover); }
+        .theme-toggle svg { width: 16px; height: 16px; fill: currentColor; }
+
+        /* ============================================================
+           Layout
+           ============================================================ */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ============================================================
+           Page Header
+           ============================================================ */
+        .PageHeader {
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--borderColor-default);
+        }
+        .PageHeader h1 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .PageHeader p {
+            font-size: 14px;
+            color: var(--fgColor-muted);
+            margin-top: 4px;
+        }
+        .Label {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 0 7px;
+            line-height: 20px;
+            border: 1px solid var(--borderColor-default);
+            border-radius: 2em;
+            color: var(--fgColor-muted);
+        }
+
+        /* ============================================================
+           Box — GitHub card style
+           ============================================================ */
+        .Box {
+            background: var(--bgColor-muted);
+            border: 1px solid var(--borderColor-default);
+            border-radius: var(--borderRadius-medium);
+            margin-bottom: 16px;
+        }
+        .Box-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--borderColor-default);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .Box-header h2 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .Box-body { padding: 16px; }
+        .Box-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--borderColor-default);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .Box-row {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--borderColor-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .Box-row:last-child { border-bottom: none; }
+
+        /* ============================================================
+           Buttons — Primer style
+           ============================================================ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            line-height: 20px;
+            border-radius: var(--borderRadius-medium);
+            border: 1px solid var(--button-default-borderColor);
+            background: var(--button-default-bgColor);
+            color: var(--fgColor-default);
+            cursor: pointer;
+            transition: 0.1s ease;
+            white-space: nowrap;
+            vertical-align: middle;
+            appearance: none;
+        }
+        .btn:hover { background: var(--button-default-bgColor-hover); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-primary {
+            background: var(--button-primary-bgColor);
+            border-color: var(--button-primary-borderColor);
+            color: var(--fgColor-onEmphasis);
+        }
+        .btn-primary:hover { background: var(--button-primary-bgColor-hover); }
+
+        .btn-sm {
+            padding: 3px 12px;
+            font-size: 12px;
+        }
+
+        .btn-invisible {
+            background: transparent;
+            border-color: transparent;
+            color: var(--accent-fgColor);
+        }
+        .btn-invisible:hover { background: rgba(56, 139, 253, 0.1); }
+
+        /* ============================================================
+           SegmentedControl — Plan selector
+           ============================================================ */
+        .SegmentedControl {
+            display: inline-flex;
+            background: var(--bgColor-inset);
+            border: 1px solid var(--borderColor-default);
+            border-radius: var(--borderRadius-medium);
+            overflow: hidden;
+        }
+        .SegmentedControl input { display: none; }
+        .SegmentedControl label {
+            display: block;
+            padding: 5px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            border-right: 1px solid var(--borderColor-default);
+            color: var(--fgColor-muted);
+            transition: 0.1s;
+        }
+        .SegmentedControl label:last-of-type { border-right: none; }
+        .SegmentedControl label:hover { color: var(--fgColor-default); background: var(--button-default-bgColor); }
+        .SegmentedControl input:checked + label {
+            background: var(--button-default-bgColor);
+            color: var(--fgColor-default);
+            font-weight: 600;
+        }
+
+        /* ============================================================
+           Flash — Info/Warning banners
+           ============================================================ */
+        .flash {
+            padding: 12px 16px;
+            border-radius: var(--borderRadius-medium);
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+        .flash-info {
+            background: var(--accent-bgColor-muted);
+            border: 1px solid var(--accent-borderColor);
+            color: var(--fgColor-default);
+        }
+
+        /* ============================================================
+           Toggle options
+           ============================================================ */
+        .form-checkbox {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--fgColor-muted);
+            cursor: pointer;
+        }
+        .form-checkbox input[type="checkbox"],
+        .form-checkbox input[type="radio"] {
+            accent-color: var(--accent-emphasis);
+        }
+
+        .form-group {
+            margin-top: 12px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-group.visible { display: flex; }
+        .form-group label {
+            font-size: 12px;
+            color: var(--fgColor-muted);
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .form-control {
+            background: var(--bgColor-default);
+            border: 1px solid var(--borderColor-default);
+            border-radius: var(--borderRadius-medium);
+            color: var(--fgColor-default);
+            padding: 5px 12px;
+            font-size: 14px;
+            font-family: inherit;
+            line-height: 20px;
+            width: 240px;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-emphasis);
+            box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.3);
+        }
+
+        /* ============================================================
+           Status Badges — GitHub Actions style
+           ============================================================ */
+        .State {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 10px;
+            border-radius: 2em;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .State--pass { background: var(--success-bgColor-muted); color: var(--success-fgColor); }
+        .State--fail { background: var(--danger-bgColor-muted); color: var(--danger-fgColor); }
+        .State--warn { background: var(--attention-bgColor-muted); color: var(--attention-fgColor); }
+        .State--pending { background: rgba(110, 118, 129, 0.15); color: var(--fgColor-muted); }
+
+        /* ============================================================
+           Progress bar
+           ============================================================ */
+        .Progress {
+            height: 8px;
+            background: var(--borderColor-muted);
+            border-radius: var(--borderRadius-medium);
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .Progress-item {
+            height: 100%;
+            background: var(--accent-emphasis);
+            border-radius: var(--borderRadius-medium);
+            transition: width 0.3s ease;
+        }
+
+        /* ============================================================
+           Results rows
+           ============================================================ */
+        .endpoint-group { margin-bottom: 8px; }
+        .endpoint-group-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--fgColor-muted);
+            padding: 8px 16px;
+            background: var(--bgColor-inset);
+            border-bottom: 1px solid var(--borderColor-muted);
+        }
+        .endpoint-row {
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--borderColor-muted);
+            gap: 12px;
+        }
+        .endpoint-row:last-child { border-bottom: none; }
+        .endpoint-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+        .endpoint-url {
+            font-family: var(--fontStack-monospace);
+            font-size: 12px;
+            color: var(--accent-fgColor);
+            word-break: break-all;
+        }
+        .endpoint-purpose { font-size: 12px; color: var(--fgColor-muted); }
+
+        /* ============================================================
+           Checklist items
+           ============================================================ */
+        .checklist-row {
+            padding: 10px 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            border-bottom: 1px solid var(--borderColor-muted);
+            font-size: 13px;
+        }
+        .checklist-row:last-child { border-bottom: none; }
+        .checklist-domain {
+            font-family: var(--fontStack-monospace);
+            font-size: 12px;
+            color: var(--accent-fgColor);
+            min-width: 260px;
+            flex-shrink: 0;
+        }
+        .checklist-meta {
+            color: var(--fgColor-muted);
+            font-size: 12px;
+            flex: 1;
+        }
+        .IssueLabel {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 0 6px;
+            line-height: 18px;
+            border-radius: 2em;
+            margin-left: 6px;
+        }
+        .IssueLabel--red { background: var(--danger-bgColor-muted); color: var(--danger-fgColor); }
+        .IssueLabel--green { background: var(--success-bgColor-muted); color: var(--success-fgColor); }
+        .IssueLabel--gray { background: rgba(110,118,129,0.15); color: var(--fgColor-muted); }
+        .IssueLabel--yellow { background: var(--attention-bgColor-muted); color: var(--attention-fgColor); }
+
+        /* Cloud Agent categories */
+        .cloud-category { border-bottom: 1px solid var(--borderColor-muted); }
+        .cloud-category:last-child { border-bottom: none; }
+        .cloud-category-header {
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .cloud-category-header:hover { background: var(--bgColor-muted); }
+        .cloud-category-hosts { padding: 0 0 4px; }
+        .cloud-category-hosts .checklist-row {
+            padding: 4px 16px 4px 32px;
+            border-bottom: none;
+        }
+        .flash-warn {
+            background: var(--attention-bgColor-muted);
+            border: 1px solid var(--attention-borderColor);
+            border-radius: 6px;
+            padding: 12px 16px;
+            font-size: 13px;
+        }
+
+        /* ============================================================
+           UnderlineNav — Tabs
+           ============================================================ */
+        .UnderlineNav {
+            display: flex;
+            border-bottom: 1px solid var(--borderColor-default);
+            margin-bottom: 0;
+            overflow-x: auto;
+        }
+        .UnderlineNav-item {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--fgColor-muted);
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            white-space: nowrap;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+            font-family: inherit;
+        }
+        .UnderlineNav-item:hover { color: var(--fgColor-default); }
+        .UnderlineNav-item.selected {
+            color: var(--fgColor-default);
+            font-weight: 600;
+            border-bottom-color: #f78166;
+        }
+
+        /* ============================================================
+           Script / Code block
+           ============================================================ */
+        .code-block {
+            background: var(--bgColor-inset);
+            border: 1px solid var(--borderColor-default);
+            border-radius: 0 0 var(--borderRadius-medium) var(--borderRadius-medium);
+            padding: 16px;
+            font-family: var(--fontStack-monospace);
+            font-size: 12px;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 480px;
+            overflow-y: auto;
+            color: var(--fgColor-default);
+        }
+
+        /* ============================================================
+           IDE Guide content
+           ============================================================ */
+        .ide-guide {
+            padding: 16px;
+            font-size: 13px;
+            line-height: 1.7;
+            border: 1px solid var(--borderColor-default);
+            border-top: none;
+            border-radius: 0 0 var(--borderRadius-medium) var(--borderRadius-medium);
+        }
+        .ide-guide strong { color: var(--fgColor-default); }
+        .ide-guide ol, .ide-guide ul { padding-left: 24px; margin: 8px 0; }
+        .ide-guide li { margin-bottom: 4px; }
+        .ide-guide details { margin-top: 8px; }
+        .ide-guide summary {
+            cursor: pointer; color: var(--accent-fgColor);
+            font-size: 13px; font-weight: 500;
+        }
+
+        /* ============================================================
+           Summary counters
+           ============================================================ */
+        .counter-group {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        .counter-item { display: flex; align-items: center; gap: 4px; }
+        .Counter {
+            display: inline-block;
+            min-width: 20px;
+            padding: 0 6px;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 20px;
+            text-align: center;
+            border-radius: 2em;
+            background: rgba(110, 118, 129, 0.2);
+        }
+
+        /* ============================================================
+           Action bar (buttons row)
+           ============================================================ */
+        .ActionBar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* ============================================================
+           Hidden sections
+           ============================================================ */
+        .section-panel { display: none; }
+        .section-panel.open { display: block; }
+
+        /* ============================================================
+           Footer
+           ============================================================ */
+        .footer {
+            margin-top: 32px;
+            padding: 16px 0;
+            border-top: 1px solid var(--borderColor-default);
+            font-size: 12px;
+            color: var(--fgColor-muted);
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* ============================================================
+           Responsive
+           ============================================================ */
+        @media (max-width: 640px) {
+            .container { padding: 16px; }
+            .AppHeader { padding: 12px 16px; }
+            .checklist-row { flex-direction: column; }
+            .checklist-domain { min-width: auto; }
+            .endpoint-row { flex-direction: column; align-items: flex-start; }
+            .Box-header { flex-direction: column; align-items: flex-start; }
+            .footer { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== GitHub-style Header ===== -->
+<header class="AppHeader">
+    <a class="AppHeader-logo" href="https://github.com" target="_blank">
+        <svg height="32" viewBox="0 0 16 16" width="32"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path></svg>
+    </a>
+    <div class="AppHeader-context">
+        <span>Copilot</span>
+        <span class="separator">/</span>
+        <span>Network Check</span>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+        <svg id="theme-icon-sun" viewBox="0 0 16 16" style="display:none;"><path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm5.657-8.157a.75.75 0 0 1 0 1.061l-1.061 1.06a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.06-1.06a.75.75 0 0 1 1.06 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 0 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm13 0a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8Zm-8 5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm3.536-1.464a.75.75 0 0 1 1.06 0l1.061 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.06a.75.75 0 0 1 0-1.061ZM2.343 2.343a.75.75 0 0 1 1.061 0l1.06 1.061a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-1.06-1.06a.75.75 0 0 1 0-1.06Z"></path></svg>
+        <svg id="theme-icon-moon" viewBox="0 0 16 16"><path d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"></path></svg>
+    </button>
+</header>
+
+<div class="container">
+
+    <!-- ===== Page Header ===== -->
+    <div class="PageHeader">
+        <h1>
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="var(--accent-fgColor)"><path d="M8 16A8 8 0 1 1 8 0a8 8 0 0 1 0 16Zm3.78-9.72a.751.751 0 0 0-.018-1.042.751.751 0 0 0-1.042-.018L6.75 9.19 5.28 7.72a.751.751 0 0 0-1.042.018.751.751 0 0 0-.018 1.042l2 2a.75.75 0 0 0 1.06 0Z"></path></svg>
+            Network Connectivity Check
+        </h1>
+        <p>Verify required network endpoints and generate firewall allowlist rules for GitHub Copilot</p>
+    </div>
+
+    <!-- ===== Quick Check ===== -->
+    <div class="Box">
+        <div class="Box-header">
+            <h2>Quick Check</h2>
+            <button class="btn btn-primary" id="btn-run" onclick="runCheck()">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path></svg>
+                Run Check
+            </button>
+        </div>
+        <div class="Box-body" style="color:var(--fgColor-muted);font-size:13px;">
+            Tests all required Copilot endpoints from your browser — no configuration needed.
+        </div>
+        <div class="Box-footer">
+            <button class="btn btn-sm" onclick="toggleSection('firewall-section')">📋 Firewall Checklist</button>
+            <button class="btn btn-sm" onclick="toggleSection('cloud-agent-section')">☁️ Cloud Agent</button>
+            <button class="btn btn-sm" onclick="toggleSection('script-section')">⚙️ Generate Script</button>
+            <button class="btn btn-sm" onclick="toggleSection('ide-section')">💻 IDE Diagnostics</button>
+        </div>
+    </div>
+
+    <!-- ===== Live Results ===== -->
+    <div id="results-section" class="section-panel">
+        <div class="Box">
+            <div class="Box-header">
+                <h2>Results</h2>
+                <div class="ActionBar" id="export-bar" style="display:none;">
+                    <button class="btn btn-sm" onclick="copyResultsText()">📋 Copy Text</button>
+                    <button class="btn btn-sm" onclick="downloadResultsJSON()">💾 JSON</button>
+                </div>
+            </div>
+            <div class="Box-body">
+                <div class="flash flash-info" style="margin-bottom:12px;">
+                    ℹ️ Browser-based check uses <code>fetch(no-cors)</code> to test reachability.
+                    A ✓ means TCP/TLS connected. Use the generated script for full diagnostics.
+                </div>
+                <div class="counter-group">
+                    <div class="counter-item">✅ <span class="Counter" id="count-pass">0</span> Reachable</div>
+                    <div class="counter-item">⚠️ <span class="Counter" id="count-warn">0</span> Slow</div>
+                    <div class="counter-item">❌ <span class="Counter" id="count-fail">0</span> Blocked</div>
+                    <div class="counter-item">⏳ <span class="Counter" id="count-pending">0</span> Pending</div>
+                </div>
+                <div class="Progress"><div class="Progress-item" id="progress-fill" style="width:0%"></div></div>
+                <div id="results-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Firewall Checklist ===== -->
+    <div id="firewall-section" class="section-panel">
+        <div class="Box">
+            <div class="Box-header">
+                <h2>📋 Firewall / Proxy Allowlist</h2>
+                <button class="btn btn-sm" onclick="copyFirewallRules()">📋 Copy Rules</button>
+            </div>
+            <div class="Box-body">
+                <div class="flash flash-info">
+                    These are <strong>pattern-based rules</strong> for your firewall or proxy server.
+                    Wildcard domains use dynamic subdomains that cannot be tested directly. Share this list with your IT/security team.
+                </div>
+
+                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+                    <span style="font-size:12px;font-weight:600;color:var(--fgColor-muted);">Plan:</span>
+                    <div class="SegmentedControl">
+                        <input type="radio" name="plan" id="plan-free" value="free">
+                        <label for="plan-free">Free</label>
+                        <input type="radio" name="plan" id="plan-individual" value="individual">
+                        <label for="plan-individual">Individual</label>
+                        <input type="radio" name="plan" id="plan-business" value="business" checked>
+                        <label for="plan-business">Business</label>
+                        <input type="radio" name="plan" id="plan-enterprise" value="enterprise">
+                        <label for="plan-enterprise">Enterprise</label>
+                    </div>
+                </div>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
+                    <label class="form-checkbox"><input type="checkbox" id="opt-ghecom"> GHE.com (Data Residency)</label>
+                    <label class="form-checkbox"><input type="checkbox" id="opt-emu"> Enterprise Managed Users</label>
+                    <label class="form-checkbox"><input type="checkbox" id="opt-routing"> Subscription-Based Routing</label>
+                </div>
+                <div class="form-group" id="ghe-input">
+                    <label for="ghe-subdomain">GHE.com subdomain:</label>
+                    <input class="form-control" type="text" id="ghe-subdomain" placeholder="e.g. company" style="width:180px;">
+                </div>
+                <div class="form-group" id="emu-input">
+                    <label for="emu-slug">Enterprise slug:</label>
+                    <input class="form-control" type="text" id="emu-slug" placeholder="e.g. my-enterprise" style="width:180px;">
+                </div>
+            </div>
+            <div id="routing-info" class="flash flash-warn" style="display:none;margin:12px 16px;">
+                <strong>📡 Subscription-Based Routing</strong>
+                <p style="margin:6px 0 4px;">Enterprise admins can use firewall rules to selectively allow or block Copilot by subscription plan.
+                This works by routing traffic through plan-specific subdomains:</p>
+                <ul style="margin:4px 0 8px;padding-left:20px;font-size:12px;">
+                    <li><code>*.individual.githubcopilot.com</code> — Free / Pro (Individual) users</li>
+                    <li><code>*.business.githubcopilot.com</code> — Business plan users</li>
+                    <li><code>*.enterprise.githubcopilot.com</code> — Enterprise plan users</li>
+                </ul>
+                <p style="margin:4px 0;font-size:12px;">
+                    <strong>Important:</strong> Do NOT add <code>*.githubcopilot.com</code> to your allowlist when using routing — it bypasses all plan restrictions.
+                    Below, <span class="IssueLabel IssueLabel--green" style="font-size:10px;">Allow ✅</span> = your selected plan,
+                    <span class="IssueLabel IssueLabel--red" style="font-size:10px;">Block 🚫</span> = plans to block or omit.
+                </p>
+                <p style="margin:4px 0 0;font-size:11px;color:var(--fgColor-muted);">
+                    Min versions: VS Code Copilot Chat 0.17+ · JetBrains 1.5.6.5692+ · VS 2022 17.11+ ·
+                    <a href="https://docs.github.com/en/copilot/managing-copilot/managing-copilot-for-your-enterprise/managing-access-to-copilot-in-your-enterprise/managing-github-copilot-access-to-your-enterprises-network" target="_blank">Docs →</a>
+                </p>
+            </div>
+            <div id="firewall-checklist"></div>
+        </div>
+    </div>
+
+    <!-- ===== Cloud Agent Firewall ===== -->
+    <div id="cloud-agent-section" class="section-panel">
+        <div class="Box">
+            <div class="Box-header">
+                <h2>☁️ Cloud Agent Firewall Allowlist</h2>
+                <button class="btn btn-sm" onclick="copyCloudAgentRules()">📋 Copy Rules</button>
+            </div>
+            <div class="Box-body">
+                <div class="flash flash-info">
+                    Copilot Cloud Agent (Coding Agent) runs in a sandboxed VM with a built-in firewall.
+                    If your org customizes the agent firewall, these are the <strong>recommended allowlist</strong> hosts.
+                    <a href="https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/customize-the-agent-firewall" target="_blank">Docs →</a>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px;">
+                    <button class="btn btn-sm" onclick="toggleAllCloudCategories(true)">Expand All</button>
+                    <button class="btn btn-sm" onclick="toggleAllCloudCategories(false)">Collapse All</button>
+                </div>
+                <div id="cloud-agent-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Script Generator ===== -->
+    <div id="script-section" class="section-panel">
+        <div class="Box">
+            <div class="Box-header">
+                <h2>⚙️ Diagnostic Script</h2>
+                <div class="ActionBar">
+                    <button class="btn btn-sm" onclick="copyScript()">📋 Copy</button>
+                    <button class="btn btn-sm" onclick="downloadScript()">💾 Download</button>
+                </div>
+            </div>
+            <div class="Box-body">
+                <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
+                    <label class="form-checkbox"><input type="checkbox" id="opt-verbose" checked> Verbose (TLS)</label>
+                    <label class="form-checkbox"><input type="checkbox" id="opt-dns"> DNS resolution</label>
+                    <label class="form-checkbox"><input type="checkbox" id="opt-cert"> Certificate check</label>
+                    <label class="form-checkbox"><input type="checkbox" id="opt-proxy-script"> Proxy detection</label>
+                </div>
+                <div class="form-group visible">
+                    <label for="proxy-url">Proxy URL:</label>
+                    <input class="form-control" type="text" id="proxy-url" placeholder="http://proxy.corp.com:8080" style="width:280px;">
+                </div>
+            </div>
+            <div class="UnderlineNav">
+                <button class="UnderlineNav-item selected" onclick="switchScriptTab('bash', this)">Bash</button>
+                <button class="UnderlineNav-item" onclick="switchScriptTab('powershell', this)">PowerShell</button>
+            </div>
+            <div class="code-block" id="script-content"></div>
+        </div>
+    </div>
+
+    <!-- ===== IDE Diagnostics ===== -->
+    <div id="ide-section" class="section-panel">
+        <div class="Box">
+            <div class="Box-header"><h2>💻 IDE Network Diagnostics</h2></div>
+            <div class="UnderlineNav">
+                <button class="UnderlineNav-item selected" onclick="switchIdeTab('vscode', this)">VS Code</button>
+                <button class="UnderlineNav-item" onclick="switchIdeTab('jetbrains', this)">JetBrains</button>
+                <button class="UnderlineNav-item" onclick="switchIdeTab('vs', this)">Visual Studio</button>
+                <button class="UnderlineNav-item" onclick="switchIdeTab('xcode', this)">Xcode</button>
+            </div>
+            <div class="ide-guide" id="ide-content"></div>
+        </div>
+    </div>
+
+    <!-- ===== Footer ===== -->
+    <div class="footer">
+        <div>
+            <a href="https://docs.github.com/en/copilot/reference/copilot-allowlist-reference" target="_blank">Allowlist Reference</a>
+            · <a href="https://docs.github.com/en/copilot/configuring-github-copilot/configuring-network-settings-for-github-copilot" target="_blank">Network Settings</a>
+            · <a href="https://docs.github.com/en/copilot/managing-copilot/managing-copilot-for-your-enterprise/managing-access-to-copilot-in-your-enterprise/managing-github-copilot-access-to-your-enterprises-network" target="_blank">Subscription Routing</a>
+        </div>
+        <div>Built for GitHub Support</div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// THEME TOGGLE
+// ============================================================
+function getSystemTheme() {
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('theme-icon-sun').style.display = theme === 'dark' ? 'none' : 'block';
+    document.getElementById('theme-icon-moon').style.display = theme === 'dark' ? 'block' : 'none';
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || getSystemTheme();
+    const next = current === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    localStorage.setItem('theme', next);
+}
+
+// Init theme
+(function() {
+    const saved = localStorage.getItem('theme');
+    applyTheme(saved || getSystemTheme());
+})();
+
+// Listen for system changes
+window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+    if (!localStorage.getItem('theme')) applyTheme(getSystemTheme());
+});
+
+// ============================================================
+// ENDPOINT DEFINITIONS
+// ============================================================
+const TESTABLE_ENDPOINTS = {
+    auth: {
+        name: 'Authentication',
+        endpoints: [
+            { url: 'https://github.com/login', purpose: 'GitHub authentication' },
+            { url: 'https://api.github.com/user', purpose: 'User management API' },
+            { url: 'https://api.github.com/copilot_internal/', purpose: 'Copilot internal API' },
+        ]
+    },
+    copilot_api: {
+        name: 'Copilot API',
+        endpoints: [
+            { url: 'https://copilot-proxy.githubusercontent.com/_ping', purpose: 'Copilot proxy — official diagnostic endpoint' },
+            { url: 'https://api.githubcopilot.com/_ping', purpose: 'Copilot Chat API — official diagnostic endpoint' },
+            { url: 'https://copilot-proxy.githubusercontent.com', purpose: 'Copilot code suggestions proxy' },
+            { url: 'https://origin-tracker.githubusercontent.com', purpose: 'Copilot origin tracker' },
+        ]
+    },
+    telemetry: {
+        name: 'Telemetry',
+        endpoints: [
+            { url: 'https://copilot-telemetry.githubusercontent.com/telemetry', purpose: 'Copilot telemetry' },
+            { url: 'https://collector.github.com', purpose: 'Analytics telemetry' },
+            { url: 'https://default.exp-tas.com', purpose: 'Experimentation service' },
+        ]
+    },
+    metrics: {
+        name: 'Metrics & Reporting',
+        endpoints: [
+            { url: 'https://copilot-reports-eastus.b01.azurefd.net', purpose: 'Usage metrics report downloads' },
+        ]
+    }
+};
+
+function getFirewallRules(plan, options) {
+    const rules = [];
+    const isRouting = options.routing;
+
+    rules.push(
+        { domain: 'github.com/login/*', purpose: 'Authentication', tag: 'required' },
+        { domain: 'api.github.com/user', purpose: 'User management', tag: 'required' },
+        { domain: 'api.github.com/copilot_internal/*', purpose: 'Copilot internal API', tag: 'required' },
+        { domain: 'copilot-proxy.githubusercontent.com', purpose: 'Copilot code suggestions', tag: 'required' },
+        { domain: 'origin-tracker.githubusercontent.com', purpose: 'Copilot API', tag: 'required' },
+        { domain: 'copilot-telemetry.githubusercontent.com/telemetry', purpose: 'Telemetry', tag: 'required' },
+        { domain: 'collector.github.com/*', purpose: 'Analytics', tag: 'required' },
+        { domain: 'default.exp-tas.com', purpose: 'Experimentation', tag: 'required' },
+    );
+
+    if (!isRouting) {
+        rules.push({
+            domain: '*.githubcopilot.com/*',
+            purpose: 'All Copilot API traffic (all plans)',
+            tag: 'required',
+            note: 'Omit if using subscription-based routing'
+        });
+    }
+
+    if (isRouting) {
+        // Routing mode: show selected plan as "allow", others as "block"
+        const routingPlans = [
+            { key: 'individual', domain: '*.individual.githubcopilot.com', label: 'Individual/Free' },
+            { key: 'business', domain: '*.business.githubcopilot.com', label: 'Business' },
+            { key: 'enterprise', domain: '*.enterprise.githubcopilot.com', label: 'Enterprise' },
+        ];
+        const allowKeys = plan === 'free' ? ['individual'] : [plan];
+        for (const rp of routingPlans) {
+            const isAllow = allowKeys.includes(rp.key);
+            rules.push({
+                domain: rp.domain,
+                purpose: `${rp.label} plan API routing`,
+                tag: isAllow ? 'routing-allow' : 'routing-block',
+                note: isAllow
+                    ? '✅ Allow — your plan endpoint'
+                    : '🚫 Block (or omit) to restrict this plan'
+            });
+        }
+    } else {
+        // Non-routing: only show the selected plan's endpoint
+        if (plan === 'free' || plan === 'individual') {
+            rules.push({
+                domain: '*.individual.githubcopilot.com',
+                purpose: 'Individual/Free plan API routing',
+                tag: 'required',
+                note: 'Dynamic subdomains — firewall pattern rule'
+            });
+        }
+        if (plan === 'business') {
+            rules.push({
+                domain: '*.business.githubcopilot.com',
+                purpose: 'Business plan API routing',
+                tag: 'required',
+                note: 'Dynamic subdomains — firewall pattern rule'
+            });
+        }
+        if (plan === 'enterprise') {
+            rules.push({
+                domain: '*.enterprise.githubcopilot.com',
+                purpose: 'Enterprise plan API routing',
+                tag: 'required',
+                note: 'Dynamic subdomains — firewall pattern rule'
+            });
+        }
+    }
+
+    if (options.emu && options.emuSlug) {
+        rules.push({
+            domain: `github.com/enterprises/${options.emuSlug}/*`,
+            purpose: 'EMU enterprise authentication',
+            tag: 'required'
+        });
+    }
+
+    if (options.ghecom && options.gheSubdomain) {
+        rules.push(
+            { domain: `${options.gheSubdomain}.ghe.com`, purpose: 'GHE.com portal', tag: 'required' },
+            { domain: `*.${options.gheSubdomain}.ghe.com`, purpose: 'GHE.com services', tag: 'required' },
+        );
+    }
+
+    rules.push({ domain: 'copilot-reports-*.b01.azurefd.net', purpose: 'Usage metrics reports', tag: 'optional' });
+    return rules;
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let currentScriptTab = 'bash';
+let currentIdeTab = 'vscode';
+let currentResults = [];
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function getSelectedPlan() { return document.querySelector('input[name="plan"]:checked').value; }
+
+function getOptions() {
+    return {
+        ghecom: document.getElementById('opt-ghecom').checked,
+        gheSubdomain: document.getElementById('ghe-subdomain').value.trim(),
+        emu: document.getElementById('opt-emu').checked,
+        emuSlug: document.getElementById('emu-slug').value.trim(),
+        routing: document.getElementById('opt-routing').checked,
+        proxyUrl: document.getElementById('proxy-url').value.trim(),
+    };
+}
+
+function toggleSection(id) {
+    const el = document.getElementById(id);
+    const isOpen = el.classList.contains('open');
+    el.classList.toggle('open');
+    if (!isOpen) {
+        if (id === 'firewall-section') renderFirewallChecklist();
+        if (id === 'cloud-agent-section') renderCloudAgentList();
+        if (id === 'script-section') renderScript();
+        if (id === 'ide-section') renderIdeGuide();
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+}
+
+// Event listeners for firewall options
+document.getElementById('opt-ghecom').addEventListener('change', function() {
+    document.getElementById('ghe-input').classList.toggle('visible', this.checked);
+    renderFirewallChecklist();
+});
+document.getElementById('opt-emu').addEventListener('change', function() {
+    document.getElementById('emu-input').classList.toggle('visible', this.checked);
+    renderFirewallChecklist();
+});
+document.querySelectorAll('input[name="plan"], #opt-routing').forEach(el => {
+    el.addEventListener('change', () => {
+        renderFirewallChecklist();
+        document.getElementById('routing-info').style.display =
+            document.getElementById('opt-routing').checked ? 'block' : 'none';
+    });
+});
+document.querySelectorAll('#ghe-subdomain, #emu-slug').forEach(el => {
+    el.addEventListener('input', renderFirewallChecklist);
+});
+
+// ============================================================
+// CONNECTIVITY CHECK
+// ============================================================
+function getTestableGroups() {
+    return [
+        { ...TESTABLE_ENDPOINTS.auth },
+        { ...TESTABLE_ENDPOINTS.copilot_api },
+        { ...TESTABLE_ENDPOINTS.telemetry },
+        { ...TESTABLE_ENDPOINTS.metrics },
+    ];
+}
+
+async function checkEndpoint(url) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+        const start = performance.now();
+        await fetch(url, { mode: 'no-cors', signal: controller.signal, cache: 'no-store' });
+        const elapsed = Math.round(performance.now() - start);
+        clearTimeout(timeout);
+        if (elapsed > 3000) return { status: 'warn', time: elapsed };
+        return { status: 'pass', time: elapsed };
+    } catch (err) {
+        clearTimeout(timeout);
+        if (err.name === 'AbortError') return { status: 'fail', error: 'Timeout (8s)' };
+        return { status: 'fail', error: 'Network error' };
+    }
+}
+
+async function runCheck() {
+    const btn = document.getElementById('btn-run');
+    btn.disabled = true;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" class="spin"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm.75 4.75a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z"></path></svg> Checking...';
+
+    const section = document.getElementById('results-section');
+    section.classList.add('open');
+
+    const groups = getTestableGroups();
+    const container = document.getElementById('results-container');
+    container.innerHTML = '';
+    currentResults = [];
+
+    let total = groups.reduce((s, g) => s + g.endpoints.length, 0);
+    let completed = 0, passCount = 0, warnCount = 0, failCount = 0;
+
+    document.getElementById('count-pass').textContent = '0';
+    document.getElementById('count-warn').textContent = '0';
+    document.getElementById('count-fail').textContent = '0';
+    document.getElementById('count-pending').textContent = total;
+    document.getElementById('progress-fill').style.width = '0%';
+    document.getElementById('export-bar').style.display = 'none';
+
+    for (const group of groups) {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'endpoint-group';
+        groupDiv.innerHTML = `<div class="endpoint-group-title">${group.name}</div>`;
+
+        const rows = [];
+        for (const ep of group.endpoints) {
+            const row = document.createElement('div');
+            row.className = 'endpoint-row';
+            row.innerHTML = `
+                <div class="endpoint-info">
+                    <span class="endpoint-url">${ep.url}</span>
+                    <span class="endpoint-purpose">${ep.purpose}</span>
+                </div>
+                <span class="State State--pending">checking...</span>
+            `;
+            groupDiv.appendChild(row);
+            rows.push({ row, ep });
+        }
+        container.appendChild(groupDiv);
+
+        const promises = rows.map(async ({ row, ep }) => {
+            const result = await checkEndpoint(ep.url);
+            const badge = row.querySelector('.State');
+
+            if (result.status === 'pass') {
+                badge.className = 'State State--pass';
+                badge.textContent = `✓ ${result.time}ms`;
+                passCount++;
+            } else if (result.status === 'warn') {
+                badge.className = 'State State--warn';
+                badge.textContent = `⚠ ${result.time}ms`;
+                warnCount++;
+            } else {
+                badge.className = 'State State--fail';
+                badge.textContent = `✗ ${result.error}`;
+                failCount++;
+            }
+
+            currentResults.push({ url: ep.url, purpose: ep.purpose, group: group.name, ...result });
+            completed++;
+            document.getElementById('count-pass').textContent = passCount;
+            document.getElementById('count-warn').textContent = warnCount;
+            document.getElementById('count-fail').textContent = failCount;
+            document.getElementById('count-pending').textContent = total - completed;
+            document.getElementById('progress-fill').style.width = `${(completed / total) * 100}%`;
+        });
+        await Promise.all(promises);
+    }
+
+    document.getElementById('export-bar').style.display = 'flex';
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path></svg> Run Check';
+}
+
+// ============================================================
+// RESULTS EXPORT
+// ============================================================
+function buildResultsText() {
+    const ts = new Date().toISOString();
+    let text = `GitHub Copilot Network Connectivity Check\nTime: ${ts}\n${'='.repeat(60)}\n\n`;
+    let lastGroup = '';
+    for (const r of currentResults) {
+        if (r.group !== lastGroup) { text += `── ${r.group} ──\n`; lastGroup = r.group; }
+        const status = r.status === 'pass' ? `✓ PASS (${r.time}ms)` :
+                       r.status === 'warn' ? `⚠ SLOW (${r.time}ms)` : `✗ FAIL (${r.error})`;
+        text += `  ${status.padEnd(22)} ${r.url}\n`;
+    }
+    const p = currentResults.filter(r => r.status === 'pass').length;
+    const w = currentResults.filter(r => r.status === 'warn').length;
+    const f = currentResults.filter(r => r.status === 'fail').length;
+    text += `\nSummary: ${p} passed, ${w} slow, ${f} failed\n`;
+    if (f > 0) text += `\n⚠ Some endpoints are blocked.\nRef: https://docs.github.com/en/copilot/reference/copilot-allowlist-reference\n`;
+    return text;
+}
+
+function copyResultsText() {
+    navigator.clipboard.writeText(buildResultsText()).then(() => flash(event.target, 'Copied!'));
+}
+
+function downloadResultsJSON() {
+    const data = {
+        tool: 'GitHub Copilot Network Connectivity Check', version: '2.0',
+        timestamp: new Date().toISOString(), results: currentResults,
+        summary: {
+            pass: currentResults.filter(r => r.status === 'pass').length,
+            warn: currentResults.filter(r => r.status === 'warn').length,
+            fail: currentResults.filter(r => r.status === 'fail').length,
+        }
+    };
+    dl('copilot-network-check.json', JSON.stringify(data, null, 2), 'application/json');
+}
+
+// ============================================================
+// FIREWALL CHECKLIST
+// ============================================================
+function renderFirewallChecklist() {
+    const plan = getSelectedPlan();
+    const options = getOptions();
+    const rules = getFirewallRules(plan, options);
+    const container = document.getElementById('firewall-checklist');
+    const tagMap = {
+        required: ['Required', 'IssueLabel--red'],
+        optional: ['Optional', 'IssueLabel--gray'],
+        routing: ['Routing', 'IssueLabel--yellow'],
+        'routing-allow': ['Allow ✅', 'IssueLabel--green'],
+        'routing-block': ['Block 🚫', 'IssueLabel--red'],
+    };
+    container.innerHTML = rules.map(r => {
+        const [label, cls] = tagMap[r.tag] || ['', ''];
+        return `<div class="checklist-row">
+            <span class="checklist-domain">${r.domain}</span>
+            <span class="checklist-meta">${r.purpose}${r.note ? ` — ${r.note}` : ''} <span class="IssueLabel ${cls}">${label}</span></span>
+        </div>`;
+    }).join('');
+}
+
+function copyFirewallRules() {
+    const rules = getFirewallRules(getSelectedPlan(), getOptions());
+    let text = `GitHub Copilot Firewall Allowlist — Plan: ${getSelectedPlan()}\n${'='.repeat(50)}\n\n`;
+    for (const r of rules) text += `${r.domain.padEnd(45)} # ${r.purpose}${r.note ? ` (${r.note})` : ''}\n`;
+    text += `\nRef: https://docs.github.com/en/copilot/reference/copilot-allowlist-reference\n`;
+    navigator.clipboard.writeText(text).then(() => flash(event.target, 'Copied!'));
+}
+
+// ============================================================
+// CLOUD AGENT FIREWALL
+// ============================================================
+const CLOUD_AGENT_ALLOWLIST = {
+    'GitHub: Content & API': [
+        '*.githubusercontent.com', 'raw.githubusercontent.com', 'objects.githubusercontent.com',
+        'lfs.github.com', 'github-cloud.githubusercontent.com', 'github-cloud.s3.amazonaws.com',
+        'codeload.github.com', 'scanning-api.github.com', 'api.mcp.github.com',
+        'uploads.github.com/copilot/chat/attachments/'
+    ],
+    'GitHub: Actions Artifact Storage': [
+        ...Array.from({length: 20}, (_, i) => `productionresultssa${i}.blob.core.windows.net`)
+    ],
+    'Container Registries': [
+        'ghcr.io', 'registry.hub.docker.com', '*.docker.io', '*.docker.com',
+        'production.cloudflare.docker.com', 'auth.docker.io', 'quay.io',
+        'mcr.microsoft.com', 'gcr.io', 'public.ecr.aws'
+    ],
+    'Node.js / JavaScript': [
+        'npmjs.org', 'npmjs.com', 'registry.npmjs.com', 'registry.npmjs.org',
+        'skimdb.npmjs.com', 'npm.pkg.github.com', 'api.npms.io', 'nodejs.org',
+        'yarnpkg.com', 'registry.yarnpkg.com', 'repo.yarnpkg.com', 'deb.nodesource.com',
+        'get.pnpm.io', 'bun.sh', 'deno.land', 'registry.bower.io', 'binaries.prisma.sh'
+    ],
+    'Python': [
+        'pypi.python.org', 'pypi.org', 'pip.pypa.io', '*.pythonhosted.org',
+        'files.pythonhosted.org', 'bootstrap.pypa.io', 'conda.binstar.org',
+        'conda.anaconda.org', 'binstar.org', 'anaconda.org', 'download.pytorch.org',
+        'repo.continuum.io', 'repo.anaconda.com'
+    ],
+    'Java / Gradle / Maven': [
+        'www.java.com', 'jdk.java.net', 'api.adoptium.net', 'adoptium.net',
+        'search.maven.org', 'maven.apache.org', 'repo.maven.apache.org', 'repo1.maven.org',
+        'maven.pkg.github.com', 'maven-central.storage-download.googleapis.com',
+        'maven.google.com', 'maven.oracle.com', 'jcenter.bintray.com', 'oss.sonatype.org',
+        'repo.spring.io', 'gradle.org', 'services.gradle.org', 'plugins.gradle.org',
+        'plugins-artifacts.gradle.org', 'download.eclipse.org', 'download.oracle.com'
+    ],
+    'C# / .NET': [
+        'nuget.org', 'dist.nuget.org', 'api.nuget.org', 'nuget.pkg.github.com',
+        'dotnet.microsoft.com', 'pkgs.dev.azure.com', 'builds.dotnet.microsoft.com',
+        'dotnetcli.blob.core.windows.net', 'dot.net', 'download.visualstudio.microsoft.com'
+    ],
+    'Go': [
+        'go.dev', 'golang.org', 'proxy.golang.org', 'sum.golang.org',
+        'pkg.go.dev', 'goproxy.io'
+    ],
+    'Ruby': [
+        'rubygems.org', 'api.rubygems.org', 'rubygems.pkg.github.com',
+        'bundler.rubygems.org', 'index.rubygems.org', 'cache.ruby-lang.org', '*.rvm.io'
+    ],
+    'Rust': [
+        'crates.io', 'index.crates.io', 'static.crates.io',
+        'sh.rustup.rs', 'static.rust-lang.org'
+    ],
+    'Swift / PHP / Perl / Dart / Haskell': [
+        'download.swift.org', 'swift.org', 'cocoapods.org', 'cdn.cocoapods.org',
+        'repo.packagist.org', 'packagist.org', 'getcomposer.org',
+        'cpan.org', 'www.cpan.org', 'metacpan.org', 'cpan.metacpan.org',
+        'pub.dev', 'pub.dartlang.org',
+        'haskell.org', '*.hackage.haskell.org', 'get-ghcup.haskell.org', 'downloads.haskell.org'
+    ],
+    'Certificate Authorities': [
+        'crl3.digicert.com', 'crl4.digicert.com', 'ocsp.digicert.com',
+        'ts-crl.ws.symantec.com', 'ts-ocsp.ws.symantec.com', 's.symcb.com', 's.symcd.com',
+        'crl.geotrust.com', 'ocsp.geotrust.com', 'crl.thawte.com', 'ocsp.thawte.com',
+        'crl.verisign.com', 'ocsp.verisign.com', 'crl.globalsign.com', 'ocsp.globalsign.com',
+        'crls.ssl.com', 'ocsp.ssl.com', 'crl.identrust.com', 'ocsp.identrust.com',
+        'crl.sectigo.com', 'ocsp.sectigo.com', 'crl.usertrust.com', 'ocsp.usertrust.com'
+    ],
+    'Linux Package Managers': [
+        'archive.ubuntu.com', 'security.ubuntu.com', 'ppa.launchpad.net',
+        'deb.debian.org', 'security.debian.org', 'apt.llvm.org',
+        'dl.fedoraproject.org', 'mirror.centos.org', 'vault.centos.org',
+        'dl-cdn.alpinelinux.org', 'cdn.redhat.com', 'packages.microsoft.com',
+        'packages.cloud.google.com', 'packagecloud.io'
+    ],
+    'Infrastructure & Tools': [
+        '168.63.129.16', 'releases.hashicorp.com', 'registry.terraform.io',
+        'json-schema.org', 'json.schemastore.org',
+        'playwright.download.prss.microsoft.com', 'cdn.playwright.dev',
+        'dl.k8s.io', 'pkgs.k8s.io'
+    ],
+};
+
+function renderCloudAgentList() {
+    const container = document.getElementById('cloud-agent-list');
+    let totalHosts = 0;
+    container.innerHTML = Object.entries(CLOUD_AGENT_ALLOWLIST).map(([category, hosts]) => {
+        totalHosts += hosts.length;
+        return `<details class="cloud-category">
+            <summary class="cloud-category-header">
+                <span>${category}</span>
+                <span class="Counter">${hosts.length}</span>
+            </summary>
+            <div class="cloud-category-hosts">
+                ${hosts.map(h => `<div class="checklist-row"><span class="checklist-domain">${h}</span></div>`).join('')}
+            </div>
+        </details>`;
+    }).join('');
+    container.insertAdjacentHTML('afterbegin',
+        `<div style="font-size:12px;color:var(--fgColor-muted);margin-bottom:8px;">${totalHosts} hosts across ${Object.keys(CLOUD_AGENT_ALLOWLIST).length} categories</div>`
+    );
+}
+
+function toggleAllCloudCategories(open) {
+    document.querySelectorAll('.cloud-category').forEach(el => el.open = open);
+}
+
+function copyCloudAgentRules() {
+    let text = `Copilot Cloud Agent — Recommended Firewall Allowlist\n${'='.repeat(55)}\n\n`;
+    for (const [cat, hosts] of Object.entries(CLOUD_AGENT_ALLOWLIST)) {
+        text += `── ${cat} ──\n`;
+        for (const h of hosts) text += `  ${h}\n`;
+        text += '\n';
+    }
+    text += `Ref: https://docs.github.com/en/copilot/reference/copilot-allowlist-reference\n`;
+    navigator.clipboard.writeText(text).then(() => flash(event.target, 'Copied!'));
+}
+
+// ============================================================
+// SCRIPT GENERATOR
+// ============================================================
+function getScriptEndpoints() {
+    const groups = [];
+    for (const [, group] of Object.entries(TESTABLE_ENDPOINTS)) {
+        groups.push({ name: group.name, endpoints: [...group.endpoints] });
+    }
+    return groups;
+}
+
+function generateBashScript() {
+    const options = getOptions();
+    const groups = getScriptEndpoints();
+    const verbose = document.getElementById('opt-verbose').checked;
+    const dns = document.getElementById('opt-dns').checked;
+    const cert = document.getElementById('opt-cert').checked;
+    const proxyDetect = document.getElementById('opt-proxy-script').checked;
+    const proxyUrl = options.proxyUrl;
+    const proxyFlag = proxyUrl ? ` -x "${proxyUrl}"` : '';
+
+    let s = `#!/bin/bash
+# GitHub Copilot Network Connectivity Check
+# Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+set -euo pipefail
+
+GREEN='\\033[0;32m'; RED='\\033[0;31m'; YELLOW='\\033[0;33m'; NC='\\033[0m'; BOLD='\\033[1m'
+PASS=0; FAIL=0; WARN=0; FAILURES=""
+
+echo ""; echo "\${BOLD}══════════════════════════════════════════\${NC}"
+echo "\${BOLD} GitHub Copilot Network Check\${NC}"
+echo " $(date)"; echo "\${BOLD}══════════════════════════════════════════\${NC}"; echo ""
+`;
+
+    if (proxyDetect) {
+        s += `echo "\${BOLD}── Proxy Environment ──\${NC}"
+for var in HTTPS_PROXY https_proxy HTTP_PROXY http_proxy NO_PROXY no_proxy; do
+    val=\${!var:-}; [ -n "$val" ] && echo "  \${YELLOW}⚙\${NC} $var = $val"
+done; echo ""
+`;
+    }
+
+    if (verbose) {
+        s += `check_url() {
+    local url="$1" purpose="$2" output http_code time_total
+    output=$(curl -sS${proxyFlag} --connect-timeout 5 --max-time 10 -w "\\n%{http_code} %{time_total} %{ssl_verify_result}" -o /dev/null "$url" 2>&1) || true
+    http_code=$(echo "$output" | tail -1 | awk '{print $1}')
+    time_total=$(echo "$output" | tail -1 | awk '{print $2}')
+    if [ "$http_code" != "000" ] && [ -n "$http_code" ]; then
+        if (( $(echo "$time_total > 3.0" | bc -l 2>/dev/null || echo 0) )); then
+            echo "  \${YELLOW}⚠ SLOW\${NC}  ($http_code, $\{time_total}s) $url  ($purpose)"; WARN=$((WARN+1))
+        else
+            echo "  \${GREEN}✓ PASS\${NC}  ($http_code, $\{time_total}s) $url  ($purpose)"; PASS=$((PASS+1))
+        fi
+    else
+        echo "  \${RED}✗ FAIL\${NC}  $url  ($purpose)"; FAILURES="$FAILURES\\n  - $url ($purpose)"; FAIL=$((FAIL+1))
+    fi
+}
+`;
+    } else {
+        s += `check_url() {
+    local url="$1" purpose="$2" http_code
+    http_code=$(curl -s${proxyFlag} -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 "$url" 2>/dev/null) || true
+    if [ "$http_code" != "000" ] && [ -n "$http_code" ]; then
+        echo "  \${GREEN}✓ PASS\${NC} ($http_code) $url  ($purpose)"; PASS=$((PASS+1))
+    else
+        echo "  \${RED}✗ FAIL\${NC}       $url  ($purpose)"; FAILURES="$FAILURES\\n  - $url ($purpose)"; FAIL=$((FAIL+1))
+    fi
+}
+`;
+    }
+
+    if (dns) {
+        s += `\necho "\${BOLD}── DNS Resolution ──\${NC}"
+check_dns() {
+    local domain="$1" result
+    result=$(nslookup "$domain" 2>&1 | grep -A1 "Name:" | tail -1) || true
+    if echo "$result" | grep -q "Address"; then
+        echo "  \${GREEN}✓\${NC} $domain → $(echo "$result" | awk '{print $2}')"
+    else echo "  \${RED}✗\${NC} $domain — DNS failed"; fi
+}
+check_dns "github.com"; check_dns "api.github.com"
+check_dns "copilot-proxy.githubusercontent.com"; check_dns "api.githubcopilot.com"
+check_dns "default.exp-tas.com"; echo ""
+`;
+    }
+
+    for (const group of groups) {
+        s += `\necho "\${BOLD}── ${group.name} ──\${NC}"\n`;
+        for (const ep of group.endpoints) s += `check_url "${ep.url}" "${ep.purpose}"\n`;
+        s += `echo ""\n`;
+    }
+
+    if (cert) {
+        s += `\necho "\${BOLD}── Certificate Chain ──\${NC}"
+check_cert() {
+    local host="$1"; echo "  $host:"
+    echo | openssl s_client -connect "$host:443" -servername "$host" 2>/dev/null | openssl x509 -noout -subject -issuer -dates 2>/dev/null | sed 's/^/    /' || echo "    \${RED}✗ Could not retrieve\${NC}"
+    echo ""
+}
+check_cert "copilot-proxy.githubusercontent.com"; check_cert "api.githubcopilot.com"
+
+echo "\${BOLD}── CA Environment Variables ──\${NC}"
+for var in NODE_EXTRA_CA_CERTS SSL_CERT_FILE REQUESTS_CA_BUNDLE CURL_CA_BUNDLE; do
+    val=\${!var:-}; if [ -n "$val" ]; then
+        echo "  \${YELLOW}⚙\${NC} $var = $val"
+        [ -f "$val" ] && echo "    File exists: ✓" || echo "    \${RED}File NOT found\${NC}"
+    fi
+done; echo ""
+`;
+    }
+
+    s += `echo "\${BOLD}══════════════════════════════════════════\${NC}"
+echo " \${GREEN}$PASS passed\${NC}, \${YELLOW}$WARN slow\${NC}, \${RED}$FAIL failed\${NC}"
+echo "\${BOLD}══════════════════════════════════════════\${NC}"
+if [ $FAIL -gt 0 ]; then
+    echo ""; echo -e "\${RED}Blocked:\${NC}$FAILURES"; echo ""
+    echo "Ref: https://docs.github.com/en/copilot/reference/copilot-allowlist-reference"; exit 1
+fi
+`;
+    return s;
+}
+
+function generatePowerShellScript() {
+    const options = getOptions();
+    const groups = getScriptEndpoints();
+    const verbose = document.getElementById('opt-verbose').checked;
+    const dns = document.getElementById('opt-dns').checked;
+    const cert = document.getElementById('opt-cert').checked;
+    const proxyDetect = document.getElementById('opt-proxy-script').checked;
+    const proxyUrl = options.proxyUrl;
+    const proxyParam = proxyUrl ? ` -Proxy "${proxyUrl}"` : '';
+
+    let s = `# GitHub Copilot Network Connectivity Check
+# Generated: ${new Date().toISOString()}
+
+$pass = 0; $fail = 0; $warn = 0; $failures = @()
+
+Write-Host ""; Write-Host "══════════════════════════════════════════" -ForegroundColor White
+Write-Host " GitHub Copilot Network Check" -ForegroundColor White
+Write-Host " $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+Write-Host "══════════════════════════════════════════" -ForegroundColor White; Write-Host ""
+`;
+
+    if (proxyDetect) {
+        s += `Write-Host "── Proxy Environment ──" -ForegroundColor White
+foreach ($var in @("HTTPS_PROXY","HTTP_PROXY","NO_PROXY")) {
+    $val = [Environment]::GetEnvironmentVariable($var)
+    if ($val) { Write-Host "  ⚙ $var = $val" -ForegroundColor Yellow }
+}
+$sysProxy = [System.Net.WebRequest]::GetSystemWebProxy()
+$proxyUri = $sysProxy.GetProxy([Uri]"https://copilot-proxy.githubusercontent.com")
+if ($proxyUri.Host -ne "copilot-proxy.githubusercontent.com") {
+    Write-Host "  ⚙ System proxy: $proxyUri" -ForegroundColor Yellow
+}
+Write-Host ""
+`;
+    }
+
+    s += `function Test-Endpoint {
+    param([string]$Url, [string]$Purpose)
+    try {
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $r = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 10${proxyParam} -ErrorAction Stop
+        $sw.Stop(); $t = [math]::Round($sw.Elapsed.TotalSeconds, 2)
+        if ($t -gt 3.0) {
+            Write-Host "  ⚠ SLOW  ($($r.StatusCode), $\{t}s) $Url  ($Purpose)" -ForegroundColor Yellow; $script:warn++
+        } else {
+            Write-Host "  ✓ PASS  ($($r.StatusCode), $\{t}s) $Url  ($Purpose)" -ForegroundColor Green; $script:pass++
+        }
+    } catch {
+        $sc = $null; try { $sc = $_.Exception.Response.StatusCode.value__ } catch {}
+        if ($sc) { Write-Host "  ✓ PASS  ($sc) $Url  ($Purpose)" -ForegroundColor Green; $script:pass++ }
+        else { Write-Host "  ✗ FAIL  $Url  ($Purpose)" -ForegroundColor Red; $script:failures += "  - $Url ($Purpose)"; $script:fail++ }
+    }
+}
+`;
+
+    if (dns) {
+        s += `\nWrite-Host "── DNS Resolution ──" -ForegroundColor White
+function Test-DNS { param([string]$D)
+    try { $r = Resolve-DnsName -Name $D -EA Stop | Select -First 1; Write-Host "  ✓ $D → $($r.IPAddress)" -ForegroundColor Green }
+    catch { Write-Host "  ✗ $D — DNS failed" -ForegroundColor Red }
+}
+Test-DNS "github.com"; Test-DNS "api.github.com"
+Test-DNS "copilot-proxy.githubusercontent.com"; Test-DNS "api.githubcopilot.com"
+Test-DNS "default.exp-tas.com"; Write-Host ""
+`;
+    }
+
+    for (const group of groups) {
+        s += `\nWrite-Host "── ${group.name} ──" -ForegroundColor White\n`;
+        for (const ep of group.endpoints) s += `Test-Endpoint -Url "${ep.url}" -Purpose "${ep.purpose}"\n`;
+        s += `Write-Host ""\n`;
+    }
+
+    if (cert) {
+        s += `\nWrite-Host "── Certificate Chain ──" -ForegroundColor White
+function Test-Cert { param([string]$H)
+    Write-Host "  $\{H}:"; try {
+        $tcp = New-Object System.Net.Sockets.TcpClient($H, 443)
+        $ssl = New-Object System.Net.Security.SslStream($tcp.GetStream(), $false)
+        $ssl.AuthenticateAsClient($H); $c = $ssl.RemoteCertificate
+        Write-Host "    Subject: $($c.Subject)" -ForegroundColor Gray
+        Write-Host "    Issuer:  $($c.Issuer)" -ForegroundColor Gray
+        Write-Host "    Expires: $($c.GetExpirationDateString())" -ForegroundColor Gray
+        $ssl.Close(); $tcp.Close()
+    } catch { Write-Host "    ✗ $($_.Exception.Message)" -ForegroundColor Red }
+    Write-Host ""
+}
+Test-Cert "copilot-proxy.githubusercontent.com"; Test-Cert "api.githubcopilot.com"
+
+Write-Host "── CA Environment Variables ──" -ForegroundColor White
+foreach ($var in @("NODE_EXTRA_CA_CERTS","SSL_CERT_FILE","REQUESTS_CA_BUNDLE")) {
+    $val = [Environment]::GetEnvironmentVariable($var)
+    if ($val) { Write-Host "  ⚙ $var = $val" -ForegroundColor Yellow
+        if (Test-Path $val) { Write-Host "    File exists: ✓" } else { Write-Host "    File NOT found" -ForegroundColor Red }
+    }
+}; Write-Host ""
+`;
+    }
+
+    s += `Write-Host "══════════════════════════════════════════" -ForegroundColor White
+Write-Host " $pass passed, $warn slow, $fail failed" -ForegroundColor White
+Write-Host "══════════════════════════════════════════" -ForegroundColor White
+if ($fail -gt 0) {
+    Write-Host ""; Write-Host "Blocked:" -ForegroundColor Red
+    $failures | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+    Write-Host ""; Write-Host "Ref: https://docs.github.com/en/copilot/reference/copilot-allowlist-reference" -ForegroundColor Yellow
+}
+`;
+    return s;
+}
+
+function renderScript() {
+    document.getElementById('script-content').textContent =
+        currentScriptTab === 'bash' ? generateBashScript() : generatePowerShellScript();
+}
+
+function switchScriptTab(tab, el) {
+    currentScriptTab = tab;
+    el.closest('.UnderlineNav').querySelectorAll('.UnderlineNav-item').forEach(t => t.classList.remove('selected'));
+    el.classList.add('selected');
+    renderScript();
+}
+
+function copyScript() {
+    navigator.clipboard.writeText(document.getElementById('script-content').textContent)
+        .then(() => flash(event.target, 'Copied!'));
+}
+
+function downloadScript() {
+    const ext = currentScriptTab === 'bash' ? 'sh' : 'ps1';
+    dl(`copilot-network-check.${ext}`, document.getElementById('script-content').textContent, 'text/plain');
+}
+
+document.querySelectorAll('#opt-verbose, #opt-dns, #opt-cert, #opt-proxy-script').forEach(el => {
+    el.addEventListener('change', () => {
+        if (document.getElementById('script-section').classList.contains('open')) renderScript();
+    });
+});
+
+// ============================================================
+// IDE DIAGNOSTICS
+// ============================================================
+const IDE_GUIDES = {
+    vscode: `<strong>VS Code — Copilot Network Diagnostics</strong>
+<ol>
+    <li>Open Command Palette: <code>Ctrl+Shift+P</code> / <code>Cmd+Shift+P</code></li>
+    <li><code>GitHub Copilot: Collect Diagnostics</code> — full diagnostic report</li>
+    <li><code>Developer: Chat Diagnostics</code> — Chat/Agent connectivity</li>
+    <li><code>Developer: Policy Diagnostics</code> — organization policy check</li>
+</ol>
+<strong>Output Logs:</strong>
+<ol>
+    <li>Open <code>View → Output</code></li>
+    <li>Select: <code>GitHub Copilot</code>, <code>GitHub Copilot Chat</code>, or <code>GitHub Copilot Language Server</code></li>
+    <li>Reproduce the issue → copy log</li>
+</ol>
+<details><summary>Proxy / Certificate Settings</summary>
+<ul>
+    <li><code>http.proxy</code> in VS Code Settings</li>
+    <li><code>http.proxyStrictSSL</code> — set <code>false</code> for SSL inspection (temp)</li>
+    <li><code>NODE_EXTRA_CA_CERTS</code> env var for custom CA</li>
+</ul>
+<p><a href="https://code.visualstudio.com/docs/setup/network" target="_blank">VS Code Network Docs →</a></p>
+</details>`,
+
+    jetbrains: `<strong>JetBrains — Copilot Network Diagnostics</strong>
+<ol>
+    <li><code>Tools → GitHub Copilot → Log Diagnostics</code></li>
+    <li><code>Tools → GitHub Copilot → Log CA Certificates</code></li>
+    <li>View logs: <code>Help → Show Log in Explorer/Finder</code></li>
+</ol>
+<strong>Proxy:</strong>
+<ul><li><code>Settings → Appearance & Behavior → System Settings → HTTP Proxy</code></li></ul>
+<details><summary>Certificate Trust Store</summary>
+<ul>
+    <li>JetBrains uses JVM truststore</li>
+    <li><code>Settings → Tools → Server Certificates</code></li>
+</ul>
+</details>`,
+
+    vs: `<strong>Visual Studio — Copilot Diagnostics</strong>
+<ol>
+    <li><code>View → Output</code> → select <code>GitHub Copilot</code></li>
+    <li>Check for connection/auth/timeout errors</li>
+</ol>
+<strong>Proxy:</strong> Uses system proxy (Windows proxy settings)
+<p><a href="https://learn.microsoft.com/en-us/visualstudio/install/install-and-use-visual-studio-behind-a-firewall-or-proxy-server" target="_blank">VS behind a firewall →</a></p>
+<details><summary>Logs</summary>
+<ul><li><code>%LOCALAPPDATA%\\GitHub\\Copilot\\Logs</code></li></ul>
+</details>`,
+
+    xcode: `<strong>Xcode — Copilot Diagnostics</strong>
+<p>GitHub Copilot for Xcode runs as a separate background process.</p>
+<ol>
+    <li>Check status in the menu bar Copilot icon</li>
+    <li>Logs: <code>~/Library/Logs/GitHubCopilot/</code></li>
+    <li>Restart: quit and relaunch the Copilot for Xcode app</li>
+</ol>
+<strong>Proxy:</strong> Uses macOS system proxy (System Settings → Network → Proxies)`
+};
+
+function renderIdeGuide() { document.getElementById('ide-content').innerHTML = IDE_GUIDES[currentIdeTab]; }
+
+function switchIdeTab(tab, el) {
+    currentIdeTab = tab;
+    el.closest('.UnderlineNav').querySelectorAll('.UnderlineNav-item').forEach(t => t.classList.remove('selected'));
+    el.classList.add('selected');
+    renderIdeGuide();
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function flash(btn, msg) {
+    const orig = btn.textContent;
+    btn.textContent = `✓ ${msg}`;
+    setTimeout(() => btn.textContent = orig, 2000);
+}
+
+function dl(name, content, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], { type }));
+    a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+
+// Init
+renderIdeGuide();
+</script>
+</body>
+</html>
