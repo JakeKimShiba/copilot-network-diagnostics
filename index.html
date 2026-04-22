@@ -1123,10 +1123,10 @@ const TRANSLATIONS = {
         'header.copilot': 'Copilot',
         'header.networkCheck': '네트워크 진단',
         'page.title': 'Copilot 네트워크 연결 확인',
-        'page.subtitle': 'GitHub Copilot에 필요한 네트워크 엔드포인트를 확인하고 방화벽 허용 목록 규칙을 생성합니다',
-        'quickCheck.title': '빠른 확인',
+        'page.subtitle': 'GitHub Copilot에 필요한 네트워크 엔드포인트의 연결 상태를 확인하고, 방화벽 허용 규칙을 생성합니다',
+        'quickCheck.title': '빠른 검사',
         'quickCheck.run': '검사 실행',
-        'quickCheck.desc': '브라우저에서 모든 필수 Copilot 엔드포인트를 테스트합니다. 별도 설정이 필요 없습니다.',
+        'quickCheck.desc': '브라우저에서 Copilot 필수 엔드포인트를 바로 테스트합니다. 별도 설정 없이 사용할 수 있습니다.',
         'quickCheck.firewall': '방화벽 체크리스트',
         'quickCheck.cloudAgent': 'Cloud Agent',
         'quickCheck.script': '스크립트 생성',
@@ -1134,32 +1134,32 @@ const TRANSLATIONS = {
         'results.title': '결과',
         'results.copyText': '텍스트 복사',
         'results.json': 'JSON',
-        'results.info': 'ℹ️ 브라우저 기반 검사는 <code>fetch(no-cors)</code>로 접근 가능 여부를 테스트합니다. ✓는 TCP/TLS 연결 성공을 의미합니다. 전체 진단은 생성된 스크립트를 사용하세요.',
-        'results.reachable': '접근 가능',
-        'results.slow': '느림',
+        'results.info': 'ℹ️ 이 검사는 브라우저의 <code>fetch(no-cors)</code>로 연결 가능 여부를 테스트합니다. ✓는 TCP/TLS 연결 성공을 의미합니다. 정밀 진단이 필요하면 스크립트를 생성하여 사용하세요.',
+        'results.reachable': '연결됨',
+        'results.slow': '지연',
         'results.blocked': '차단됨',
         'results.pending': '대기 중',
         'results.checking': '확인 중...',
         'firewall.title': '방화벽 / 프록시 허용 목록',
         'firewall.copyRules': '규칙 복사',
-        'firewall.info': '방화벽 또는 프록시 서버를 위한 <strong>패턴 기반 규칙</strong>입니다. 와일드카드 도메인은 직접 테스트할 수 없는 동적 서브도메인을 사용합니다. 이 목록을 IT/보안 팀에 공유하세요.',
+        'firewall.info': '방화벽이나 프록시 서버에 적용할 <strong>패턴 기반 규칙</strong>입니다. 와일드카드 도메인은 동적 서브도메인을 사용하므로 직접 테스트할 수 없습니다. IT/보안 팀에 이 목록을 공유하세요.',
         'firewall.plan': '플랜:',
         'firewall.ghecom': 'GHE.com (데이터 레지던시)',
         'firewall.emu': 'Enterprise Managed Users',
         'firewall.routing': '구독 기반 라우팅',
         'firewall.gheSubdomain': 'GHE.com 서브도메인:',
         'firewall.emuSlug': 'Enterprise 슬러그:',
-        'routing.info': '<strong>📡 구독 기반 라우팅</strong><p style="margin:6px 0 4px;">Enterprise 관리자는 방화벽 규칙을 사용하여 구독 플랜별로 Copilot을 선택적으로 허용하거나 차단할 수 있습니다. 이는 플랜별 서브도메인을 통해 트래픽을 라우팅하는 방식으로 작동합니다:</p><ul style="margin:4px 0 8px;padding-left:20px;font-size:12px;"><li><code>*.individual.githubcopilot.com</code> — Free / Pro (Individual) 사용자</li><li><code>*.business.githubcopilot.com</code> — Business 플랜 사용자</li><li><code>*.enterprise.githubcopilot.com</code> — Enterprise 플랜 사용자</li></ul><p style="margin:4px 0;font-size:12px;"><strong>중요:</strong> 라우팅 사용 시 <code>*.githubcopilot.com</code>을 허용 목록에 추가하지 마세요. 모든 플랜 제한이 우회됩니다. 아래에서, <span class="IssueLabel IssueLabel--green" style="font-size:10px;">허용 ✅</span> = 선택한 플랜, <span class="IssueLabel IssueLabel--red" style="font-size:10px;">차단 🚫</span> = 차단하거나 제외할 플랜.</p><p style="margin:4px 0 0;font-size:11px;color:var(--fgColor-muted);">최소 버전: VS Code Copilot Chat 0.17+ · JetBrains 1.5.6.5692+ · VS 2022 17.11+ · <a href="https://docs.github.com/en/copilot/managing-copilot/managing-copilot-for-your-enterprise/managing-access-to-copilot-in-your-enterprise/managing-github-copilot-access-to-your-enterprises-network" target="_blank">문서 →</a></p>',
+        'routing.info': '<strong>📡 구독 기반 라우팅</strong><p style="margin:6px 0 4px;">Enterprise 관리자는 방화벽 규칙으로 구독 플랜별 Copilot 접근을 제어할 수 있습니다. 플랜별 전용 서브도메인을 통해 트래픽을 분리하는 방식입니다:</p><ul style="margin:4px 0 8px;padding-left:20px;font-size:12px;"><li><code>*.individual.githubcopilot.com</code> — Free / Pro (Individual) 사용자</li><li><code>*.business.githubcopilot.com</code> — Business 플랜 사용자</li><li><code>*.enterprise.githubcopilot.com</code> — Enterprise 플랜 사용자</li></ul><p style="margin:4px 0;font-size:12px;"><strong>주의:</strong> 라우팅 사용 시 <code>*.githubcopilot.com</code>을 허용 목록에 추가하면 모든 플랜 제한이 무력화됩니다. 아래에서 <span class="IssueLabel IssueLabel--green" style="font-size:10px;">허용 ✅</span> = 선택한 플랜, <span class="IssueLabel IssueLabel--red" style="font-size:10px;">차단 🚫</span> = 차단 또는 제외할 플랜입니다.</p><p style="margin:4px 0 0;font-size:11px;color:var(--fgColor-muted);">최소 버전: VS Code Copilot Chat 0.17+ · JetBrains 1.5.6.5692+ · VS 2022 17.11+ · <a href="https://docs.github.com/en/copilot/managing-copilot/managing-copilot-for-your-enterprise/managing-access-to-copilot-in-your-enterprise/managing-github-copilot-access-to-your-enterprises-network" target="_blank">문서 →</a></p>',
         'cloudAgent.title': 'Cloud Agent 방화벽 허용 목록',
         'cloudAgent.copyRules': '규칙 복사',
-        'cloudAgent.info': 'Copilot Cloud Agent(Coding Agent)는 내장 방화벽이 있는 샌드박스 VM에서 실행됩니다. 조직에서 에이전트 방화벽을 사용자 지정하는 경우, 다음이 <strong>권장 허용 목록</strong> 호스트입니다. <a href="https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/customize-the-agent-firewall" target="_blank">문서 →</a>',
+        'cloudAgent.info': 'Copilot Cloud Agent(Coding Agent)는 내장 방화벽이 포함된 샌드박스 VM에서 실행됩니다. 조직에서 에이전트 방화벽을 커스터마이즈하는 경우, 아래 호스트를 <strong>허용 목록에 추가</strong>하는 것을 권장합니다. <a href="https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/customize-the-agent-firewall" target="_blank">문서 →</a>',
         'cloudAgent.expandAll': '모두 펼치기',
         'cloudAgent.collapseAll': '모두 접기',
         'script.title': '진단 스크립트',
         'script.copy': '복사',
         'script.download': '다운로드',
         'script.verbose': '상세 (TLS)',
-        'script.dns': 'DNS 확인',
+        'script.dns': 'DNS 조회',
         'script.cert': '인증서 확인',
         'script.proxy': '프록시 감지',
         'script.proxyUrl': '프록시 URL:',
@@ -1167,7 +1167,7 @@ const TRANSLATIONS = {
         'footer.allowlist': '허용 목록 참조',
         'footer.network': '네트워크 설정',
         'footer.routing': '구독 라우팅',
-        'footer.built': 'GitHub Support를 위해 제작',
+        'footer.built': 'GitHub Support용으로 제작',
         'dynamic.checking': '확인 중...',
         'dynamic.runCheck': '검사 실행',
         'dynamic.timeout': '시간 초과 (8초)',
@@ -2019,7 +2019,8 @@ document.querySelectorAll('#opt-verbose, #opt-dns, #opt-cert, #opt-proxy-script'
 // IDE DIAGNOSTICS
 // ============================================================
 const IDE_GUIDES = {
-    vscode: `<strong>VS Code — Copilot Network Diagnostics</strong>
+    en: {
+        vscode: `<strong>VS Code — Copilot Network Diagnostics</strong>
 <ol>
     <li>Open Command Palette: <code>Ctrl+Shift+P</code> / <code>Cmd+Shift+P</code></li>
     <li><code>GitHub Copilot: Collect Diagnostics</code> — full diagnostic report</li>
@@ -2040,8 +2041,7 @@ const IDE_GUIDES = {
 </ul>
 <p><a href="https://code.visualstudio.com/docs/setup/network" target="_blank">VS Code Network Docs →</a></p>
 </details>`,
-
-    jetbrains: `<strong>JetBrains — Copilot Network Diagnostics</strong>
+        jetbrains: `<strong>JetBrains — Copilot Network Diagnostics</strong>
 <ol>
     <li><code>Tools → GitHub Copilot → Log Diagnostics</code></li>
     <li><code>Tools → GitHub Copilot → Log CA Certificates</code></li>
@@ -2055,8 +2055,7 @@ const IDE_GUIDES = {
     <li><code>Settings → Tools → Server Certificates</code></li>
 </ul>
 </details>`,
-
-    vs: `<strong>Visual Studio — Copilot Diagnostics</strong>
+        vs: `<strong>Visual Studio — Copilot Diagnostics</strong>
 <ol>
     <li><code>View → Output</code> → select <code>GitHub Copilot</code></li>
     <li>Check for connection/auth/timeout errors</li>
@@ -2066,8 +2065,7 @@ const IDE_GUIDES = {
 <details><summary>Logs</summary>
 <ul><li><code>%LOCALAPPDATA%\\GitHub\\Copilot\\Logs</code></li></ul>
 </details>`,
-
-    xcode: `<strong>Xcode — Copilot Diagnostics</strong>
+        xcode: `<strong>Xcode — Copilot Diagnostics</strong>
 <p>GitHub Copilot for Xcode runs as a separate background process.</p>
 <ol>
     <li>Check status in the menu bar Copilot icon</li>
@@ -2075,9 +2073,120 @@ const IDE_GUIDES = {
     <li>Restart: quit and relaunch the Copilot for Xcode app</li>
 </ol>
 <strong>Proxy:</strong> Uses macOS system proxy (System Settings → Network → Proxies)`
+    },
+    ja: {
+        vscode: `<strong>VS Code — Copilot ネットワーク診断</strong>
+<ol>
+    <li>コマンドパレットを開く: <code>Ctrl+Shift+P</code> / <code>Cmd+Shift+P</code></li>
+    <li><code>GitHub Copilot: Collect Diagnostics</code> — 診断レポートの生成</li>
+    <li><code>Developer: Chat Diagnostics</code> — Chat/Agent接続の確認</li>
+    <li><code>Developer: Policy Diagnostics</code> — 組織ポリシーの確認</li>
+</ol>
+<strong>出力ログ:</strong>
+<ol>
+    <li><code>表示 → 出力</code> を開く</li>
+    <li>ドロップダウンから <code>GitHub Copilot</code>、<code>GitHub Copilot Chat</code>、または <code>GitHub Copilot Language Server</code> を選択</li>
+    <li>問題を再現 → ログをコピー</li>
+</ol>
+<details><summary>プロキシ / 証明書の設定</summary>
+<ul>
+    <li>VS Code 設定で <code>http.proxy</code> を指定</li>
+    <li><code>http.proxyStrictSSL</code> — SSL検査環境では一時的に <code>false</code> に設定</li>
+    <li>カスタムCAには環境変数 <code>NODE_EXTRA_CA_CERTS</code> を使用</li>
+</ul>
+<p><a href="https://code.visualstudio.com/docs/setup/network" target="_blank">VS Code ネットワーク設定ドキュメント →</a></p>
+</details>`,
+        jetbrains: `<strong>JetBrains — Copilot ネットワーク診断</strong>
+<ol>
+    <li><code>Tools → GitHub Copilot → Log Diagnostics</code></li>
+    <li><code>Tools → GitHub Copilot → Log CA Certificates</code></li>
+    <li>ログの確認: <code>Help → Show Log in Explorer/Finder</code></li>
+</ol>
+<strong>プロキシ:</strong>
+<ul><li><code>Settings → Appearance & Behavior → System Settings → HTTP Proxy</code></li></ul>
+<details><summary>証明書トラストストア</summary>
+<ul>
+    <li>JetBrainsはJVMトラストストアを使用します</li>
+    <li><code>Settings → Tools → Server Certificates</code></li>
+</ul>
+</details>`,
+        vs: `<strong>Visual Studio — Copilot 診断</strong>
+<ol>
+    <li><code>View → Output</code> → <code>GitHub Copilot</code> を選択</li>
+    <li>接続・認証・タイムアウトのエラーを確認</li>
+</ol>
+<strong>プロキシ:</strong> システムプロキシを使用（Windowsのプロキシ設定）
+<p><a href="https://learn.microsoft.com/en-us/visualstudio/install/install-and-use-visual-studio-behind-a-firewall-or-proxy-server" target="_blank">VS ファイアウォール環境ガイド →</a></p>
+<details><summary>ログ</summary>
+<ul><li><code>%LOCALAPPDATA%\\GitHub\\Copilot\\Logs</code></li></ul>
+</details>`,
+        xcode: `<strong>Xcode — Copilot 診断</strong>
+<p>GitHub Copilot for Xcodeはバックグラウンドプロセスとして動作します。</p>
+<ol>
+    <li>メニューバーのCopilotアイコンでステータスを確認</li>
+    <li>ログ: <code>~/Library/Logs/GitHubCopilot/</code></li>
+    <li>再起動: Copilot for Xcodeアプリを終了して再度起動</li>
+</ol>
+<strong>プロキシ:</strong> macOSシステムプロキシを使用（システム設定 → ネットワーク → プロキシ）`
+    },
+    ko: {
+        vscode: `<strong>VS Code — Copilot 네트워크 진단</strong>
+<ol>
+    <li>명령 팔레트 열기: <code>Ctrl+Shift+P</code> / <code>Cmd+Shift+P</code></li>
+    <li><code>GitHub Copilot: Collect Diagnostics</code> — 전체 진단 리포트 생성</li>
+    <li><code>Developer: Chat Diagnostics</code> — Chat/Agent 연결 상태 확인</li>
+    <li><code>Developer: Policy Diagnostics</code> — 조직 정책 확인</li>
+</ol>
+<strong>출력 로그:</strong>
+<ol>
+    <li><code>보기 → 출력</code> 열기</li>
+    <li>드롭다운에서 <code>GitHub Copilot</code>, <code>GitHub Copilot Chat</code>, 또는 <code>GitHub Copilot Language Server</code> 선택</li>
+    <li>문제를 재현한 뒤 로그를 복사</li>
+</ol>
+<details><summary>프록시 / 인증서 설정</summary>
+<ul>
+    <li>VS Code 설정에서 <code>http.proxy</code> 지정</li>
+    <li><code>http.proxyStrictSSL</code> — SSL 검사 환경에서는 임시로 <code>false</code> 설정</li>
+    <li>사용자 지정 CA는 환경 변수 <code>NODE_EXTRA_CA_CERTS</code> 사용</li>
+</ul>
+<p><a href="https://code.visualstudio.com/docs/setup/network" target="_blank">VS Code 네트워크 설정 문서 →</a></p>
+</details>`,
+        jetbrains: `<strong>JetBrains — Copilot 네트워크 진단</strong>
+<ol>
+    <li><code>Tools → GitHub Copilot → Log Diagnostics</code></li>
+    <li><code>Tools → GitHub Copilot → Log CA Certificates</code></li>
+    <li>로그 확인: <code>Help → Show Log in Explorer/Finder</code></li>
+</ol>
+<strong>프록시:</strong>
+<ul><li><code>Settings → Appearance & Behavior → System Settings → HTTP Proxy</code></li></ul>
+<details><summary>인증서 트러스트 스토어</summary>
+<ul>
+    <li>JetBrains는 JVM 트러스트 스토어를 사용합니다</li>
+    <li><code>Settings → Tools → Server Certificates</code></li>
+</ul>
+</details>`,
+        vs: `<strong>Visual Studio — Copilot 진단</strong>
+<ol>
+    <li><code>View → Output</code> → <code>GitHub Copilot</code> 선택</li>
+    <li>연결, 인증, 타임아웃 관련 오류 확인</li>
+</ol>
+<strong>프록시:</strong> 시스템 프록시 사용 (Windows 프록시 설정)
+<p><a href="https://learn.microsoft.com/en-us/visualstudio/install/install-and-use-visual-studio-behind-a-firewall-or-proxy-server" target="_blank">VS 방화벽 환경 가이드 →</a></p>
+<details><summary>로그</summary>
+<ul><li><code>%LOCALAPPDATA%\\GitHub\\Copilot\\Logs</code></li></ul>
+</details>`,
+        xcode: `<strong>Xcode — Copilot 진단</strong>
+<p>GitHub Copilot for Xcode는 별도의 백그라운드 프로세스로 실행됩니다.</p>
+<ol>
+    <li>메뉴 바의 Copilot 아이콘에서 상태 확인</li>
+    <li>로그: <code>~/Library/Logs/GitHubCopilot/</code></li>
+    <li>재시작: Copilot for Xcode 앱을 종료 후 다시 실행</li>
+</ol>
+<strong>프록시:</strong> macOS 시스템 프록시 사용 (시스템 설정 → 네트워크 → 프록시)`
+    }
 };
 
-function renderIdeGuide() { const guides = IDE_GUIDES[currentLang] || IDE_GUIDES.en; document.getElementById('ide-content').innerHTML = guides[currentIdeTab]; }
+function renderIdeGuide() { const guides = IDE_GUIDES[currentLang] || IDE_GUIDES.en; document.getElementById('ide-content').innerHTML = guides[currentIdeTab] || ''; }
 
 function switchIdeTab(tab, el) {
     currentIdeTab = tab;
