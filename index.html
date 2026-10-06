@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generate scoped GitHub Copilot firewall rules and local diagnostic scripts, compare proxy paths, and check representative network endpoints.">
     <title>Copilot Network Connectivity Check</title>
     <style>
         /* ============================================================
@@ -291,7 +292,7 @@
            Layout
            ============================================================ */
         .container {
-            max-width: 960px;
+            max-width: 1184px;
             margin: 0 auto;
             padding: 24px;
         }
@@ -300,21 +301,95 @@
            Page Header
            ============================================================ */
         .PageHeader {
-            padding-bottom: 16px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid var(--borderColor-default);
+            position: relative;
+            isolation: isolate;
+            overflow: hidden;
+            padding: 48px;
+            margin-bottom: 28px;
+            border: 1px solid var(--borderColor-default);
+            border-radius: 20px;
+            background:
+                radial-gradient(ellipse at 100% 0%, rgba(163, 113, 247, 0.24), transparent 60%),
+                radial-gradient(ellipse at 90% 100%, rgba(56, 139, 253, 0.17), transparent 55%),
+                var(--bgColor-muted);
         }
         .PageHeader h1 {
-            font-size: 20px;
+            font-size: clamp(28px, 4vw, 44px);
             font-weight: 600;
-            display: flex;
+            line-height: 1.2;
+            letter-spacing: -0.035em;
+            max-width: 730px;
+        }
+        .PageHeader h1 > svg { display: none; }
+        .PageHeader p {
+            font-size: 16px;
+            color: var(--fgColor-muted);
+            margin-top: 20px;
+            max-width: 640px;
+            text-wrap: pretty;
+        }
+        html[lang="ko"] p, html[lang="ko"] .tool-card { word-break: keep-all; overflow-wrap: anywhere; }
+        .hero-eyebrow {
+            display: inline-flex;
             align-items: center;
             gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            color: var(--done-fgColor);
         }
-        .PageHeader p {
-            font-size: 14px;
-            color: var(--fgColor-muted);
-            margin-top: 4px;
+        .hero-eyebrow::before {
+            content: '';
+            width: 20px;
+            height: 3px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #a371f7, #58a6ff);
+        }
+        .hero-art {
+            position: absolute;
+            z-index: -1;
+            width: 290px;
+            height: 250px;
+            right: -36px;
+            bottom: -50px;
+            color: var(--done-fgColor);
+            opacity: 0.16;
+            pointer-events: none;
+        }
+        .hero-links { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 24px; font-size: 13px; }
+        .setup-grid { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+        .setup-grid .Box { min-width: 0; }
+        .configuration .form-group { flex-wrap: wrap; }
+        .configuration .form-group label { min-width: 130px; }
+        .configuration .form-checkbox { display: flex; margin-top: 14px; color: var(--fgColor-default); }
+        .configuration .form-group + p, .configuration #routing-options p { margin-top: 10px; font-size: 13px; color: var(--fgColor-muted); }
+        .configuration #routing-options { padding-left: 24px; }
+        .configuration .scope-note { margin-top: 18px; font-size: 12px; color: var(--fgColor-muted); }
+        .quick-check .Box-header { flex-wrap: wrap; }
+        .quick-check .Box-body { font-size: 14px; color: var(--fgColor-muted); }
+        .quick-check .quick-action { padding: 0 24px 24px; }
+        .quick-check .quick-action .btn { width: 100%; justify-content: center; }
+        .tool-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 4px 0 28px; }
+        .tool-card {
+            display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+            font: inherit; text-align: left; cursor: pointer; padding: 20px;
+            border-radius: 12px; border: 1px solid var(--borderColor-default);
+            color: var(--fgColor-default); background: var(--bgColor-muted);
+            transition: border-color 0.15s, background 0.15s;
+        }
+        .tool-card:hover, .tool-card[aria-expanded="true"] { border-color: var(--accent-fgColor); background: var(--accent-bgColor-muted); }
+        .tool-card strong { font-size: 14px; }
+        .tool-card > span { font-size: 12px; color: var(--fgColor-muted); line-height: 1.6; }
+        .section-panel { scroll-margin-top: 24px; }
+        .back-tools { display: inline-block; padding: 8px 0; margin-bottom: 8px; font-size: 13px; }
+        .skip-link { position: absolute; left: 16px; top: -100px; padding: 12px; z-index: 200; background: var(--bgColor-default); }
+        .skip-link:focus { top: 12px; }
+        :focus-visible { outline: 2px solid var(--accent-fgColor); outline-offset: 4px; }
+        .lang-toggle, .theme-toggle { min-height: 36px; min-width: 36px; justify-content: center; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
         }
         .Label {
             display: inline-block;
@@ -331,13 +406,13 @@
            Box — GitHub card style
            ============================================================ */
         .Box {
-            background: var(--bgColor-muted);
+            background: var(--bgColor-default);
             border: 1px solid var(--borderColor-default);
-            border-radius: var(--borderRadius-medium);
-            margin-bottom: 16px;
+            border-radius: var(--borderRadius-large);
+            margin-bottom: 24px;
         }
         .Box-header {
-            padding: 16px;
+            padding: 20px 24px;
             border-bottom: 1px solid var(--borderColor-default);
             display: flex;
             align-items: center;
@@ -345,10 +420,10 @@
             gap: 12px;
         }
         .Box-header h2 {
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 600;
         }
-        .Box-body { padding: 16px; }
+        .Box-body { padding: 24px; }
         .Box-footer {
             padding: 12px 16px;
             border-top: 1px solid var(--borderColor-default);
@@ -373,7 +448,7 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 5px 16px;
+            padding: 8px 16px;
             font-size: 14px;
             font-weight: 500;
             font-family: inherit;
@@ -399,7 +474,7 @@
         .btn-primary:hover { background: var(--button-primary-bgColor-hover); }
 
         .btn-sm {
-            padding: 3px 12px;
+            padding: 6px 12px;
             font-size: 12px;
         }
 
@@ -494,6 +569,8 @@
             font-family: inherit;
             line-height: 20px;
             width: 240px;
+            max-width: 100%;
+            min-width: 0;
         }
         .form-control:focus {
             outline: none;
@@ -507,23 +584,34 @@
         .State {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-            padding: 2px 10px;
-            border-radius: 2em;
+            gap: 7px;
             font-size: 12px;
             font-weight: 500;
             white-space: nowrap;
         }
-        .State--pass { background: var(--success-bgColor-muted); color: var(--success-fgColor); }
-        .State--fail { background: var(--danger-bgColor-muted); color: var(--danger-fgColor); }
-        .State--warn { background: var(--attention-bgColor-muted); color: var(--attention-fgColor); }
-        .State--pending { background: rgba(110, 118, 129, 0.15); color: var(--fgColor-muted); }
+        .State--pass { color: var(--success-fgColor); }
+        .State--fail { color: var(--danger-fgColor); }
+        .State--warn { color: var(--attention-fgColor); }
+        .State--pending { color: var(--fgColor-muted); }
+        .result-icon { width: 18px; height: 18px; flex-shrink: 0; vertical-align: middle; }
+        #results-section .Box-header { border-bottom: 0; }
+        #results-section .Box-header h2 { font-size: 20px; letter-spacing: -0.02em; }
+        #results-section .Box-body { padding-top: 0; }
+        .results-scope { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--fgColor-muted); margin-top: 6px; }
+        .results-scope::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-fgColor); }
+        .results-note { color: var(--fgColor-muted); font-size: 13px; line-height: 1.7; border-left: 2px solid var(--borderColor-default); padding-left: 14px; margin: 20px 0; }
+        .results-note code { color: var(--fgColor-default); }
+        .results-context { font-size: 12px; color: var(--fgColor-muted); margin: 12px 0 20px; }
+        .results-progress { display: flex; justify-content: space-between; gap: 12px; color: var(--fgColor-muted); font-size: 12px; margin-bottom: 10px; }
+        .results-progress > span:last-child { font-family: var(--fontStack-monospace); font-variant-numeric: tabular-nums; }
+        .endpoint-observation { display: flex; align-items: center; gap: 20px; justify-content: flex-end; flex-shrink: 0; }
+        .endpoint-time { color: var(--fgColor-muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; min-width: 80px; }
 
         /* ============================================================
            Progress bar
            ============================================================ */
         .Progress {
-            height: 8px;
+            height: 4px;
             background: var(--borderColor-muted);
             border-radius: var(--borderRadius-medium);
             overflow: hidden;
@@ -539,19 +627,17 @@
         /* ============================================================
            Results rows
            ============================================================ */
-        .endpoint-group { margin-bottom: 8px; }
+        .endpoint-group { margin-top: 24px; border: 1px solid var(--borderColor-muted); border-radius: 10px; overflow: hidden; }
         .endpoint-group-title {
             font-size: 12px;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--fgColor-muted);
-            padding: 8px 16px;
-            background: var(--bgColor-inset);
+            color: var(--fgColor-default);
+            padding: 12px 16px;
+            background: var(--bgColor-muted);
             border-bottom: 1px solid var(--borderColor-muted);
         }
         .endpoint-row {
-            padding: 8px 16px;
+            padding: 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -559,11 +645,11 @@
             gap: 12px;
         }
         .endpoint-row:last-child { border-bottom: none; }
-        .endpoint-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+        .endpoint-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
         .endpoint-url {
             font-family: var(--fontStack-monospace);
             font-size: 12px;
-            color: var(--accent-fgColor);
+            color: var(--fgColor-default);
             word-break: break-all;
         }
         .endpoint-purpose { font-size: 12px; color: var(--fgColor-muted); }
@@ -584,8 +670,10 @@
             font-family: var(--fontStack-monospace);
             font-size: 12px;
             color: var(--accent-fgColor);
-            min-width: 260px;
+            min-width: 0;
             flex-shrink: 0;
+            flex-basis: 45%;
+            overflow-wrap: anywhere;
         }
         .checklist-meta {
             color: var(--fgColor-muted);
@@ -604,6 +692,7 @@
         .IssueLabel--red { background: var(--danger-bgColor-muted); color: var(--danger-fgColor); }
         .IssueLabel--green { background: var(--success-bgColor-muted); color: var(--success-fgColor); }
         .IssueLabel--gray { background: rgba(110,118,129,0.15); color: var(--fgColor-muted); }
+        .IssueLabel--blue { background: var(--accent-bgColor-muted); color: var(--accent-fgColor); }
         .IssueLabel--yellow { background: var(--attention-bgColor-muted); color: var(--attention-fgColor); }
 
         /* Cloud Agent categories */
@@ -698,28 +787,31 @@
         .ide-guide summary {
             cursor: pointer; color: var(--accent-fgColor);
             font-size: 13px; font-weight: 500;
+            min-height: 32px; padding: 5px 0;
         }
 
         /* ============================================================
            Summary counters
            ============================================================ */
         .counter-group {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin: 20px 0;
             font-size: 13px;
         }
-        .counter-item { display: flex; align-items: center; gap: 4px; }
+        .counter-item { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 18px; border: 1px solid var(--borderColor-default); border-radius: 10px; background: var(--bgColor-muted); }
+        .counter-label { display: flex; align-items: center; gap: 8px; color: var(--fgColor-muted); font-size: 12px; }
+        .counter-item[data-status="pass"] .result-icon { color: var(--success-fgColor); }
+        .counter-item[data-status="warn"] .result-icon { color: var(--attention-fgColor); }
+        .counter-item[data-status="fail"] .result-icon { color: var(--danger-fgColor); }
         .Counter {
             display: inline-block;
-            min-width: 20px;
-            padding: 0 6px;
-            font-size: 12px;
-            font-weight: 500;
-            line-height: 20px;
-            text-align: center;
-            border-radius: 2em;
-            background: rgba(110, 118, 129, 0.2);
+            font-size: 32px;
+            font-weight: 600;
+            line-height: 1;
+            letter-spacing: -0.04em;
+            font-variant-numeric: tabular-nums;
         }
 
         /* ============================================================
@@ -752,25 +844,68 @@
             gap: 8px;
         }
 
+        .script-steps { padding-left: 24px; margin: 0; }
+        .script-steps > li { padding-left: 4px; margin-bottom: 16px; }
+        .script-steps > li:last-child { margin-bottom: 0; }
+        .script-steps p { margin: 6px 0 10px; }
+        .script-command {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 8px;
+            padding: 14px; border: 1px solid var(--borderColor-default); border-radius: 8px;
+            background: var(--bgColor-muted); justify-content: space-between;
+        }
+        .script-command code { overflow-wrap: anywhere; min-width: 0; background: none; padding: 0; font-size: 13px; }
+        .script-steps > li::marker { color: var(--done-fgColor); font-weight: 600; }
+        .script-steps > li > strong { font-size: 15px; }
+        .script-steps p { color: var(--fgColor-muted); font-size: 13px; }
+        .script-source { border-top: 1px solid var(--borderColor-default); }
+        .script-source summary { padding: 16px; cursor: pointer; }
+        .script-source .Box-body { display: flex; gap: 8px; flex-wrap: wrap; }
+        .script-steps .btn, .script-source .btn { white-space: normal; text-align: left; max-width: 100%; }
+
         /* ============================================================
            Responsive
            ============================================================ */
+        @media (max-width: 900px) {
+            .setup-grid { grid-template-columns: 1fr; gap: 0; }
+            .tool-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
         @media (max-width: 640px) {
             .container { padding: 16px; }
             .AppHeader { padding: 12px 16px; }
+            .AppHeader { gap: 8px; flex-wrap: wrap; }
+            .AppHeader-context { font-size: 12px; gap: 5px; }
+            .lang-switcher { margin-right: 0; }
+            .PageHeader { padding: 28px 24px; }
+            .PageHeader h1 { font-size: 30px; }
+            .PageHeader p { font-size: 14px; }
+            .hero-art { opacity: 0.08; }
+            .Box-body, .Box-header { padding: 20px; }
+            .form-group.visible { flex-direction: column; align-items: stretch; }
+            .form-group label { white-space: normal; }
+            .form-control { width: 100% !important; }
+            .tool-card { padding: 16px; }
+            .btn { white-space: normal; }
+            .UnderlineNav-item { min-height: 44px; }
+            .form-checkbox { min-height: 32px; }
             .checklist-row { flex-direction: column; }
-            .checklist-domain { min-width: auto; }
+            .checklist-domain { min-width: auto; flex-basis: auto; }
             .endpoint-row { flex-direction: column; align-items: flex-start; }
+            .endpoint-observation { width: 100%; justify-content: space-between; gap: 12px; }
+            .endpoint-time { min-width: 0; overflow-wrap: anywhere; }
+            .State { white-space: normal; }
+            .counter-group { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .counter-item { padding: 14px; }
             .Box-header { flex-direction: column; align-items: flex-start; }
             .footer { flex-direction: column; }
         }
     </style>
 </head>
 <body>
+<a class="skip-link" href="#main-content" data-i18n="nav.skip">Skip to content</a>
 
 <!-- ===== GitHub-style Header ===== -->
 <header class="AppHeader">
-    <a class="AppHeader-logo" href="https://github.com" target="_blank">
+    <a class="AppHeader-logo" href="https://github.com" target="_blank" aria-label="GitHub">
         <svg height="32" viewBox="0 0 16 16" width="32"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path></svg>
     </a>
     <div class="AppHeader-context">
@@ -780,7 +915,7 @@
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
         <div class="lang-switcher">
-            <button class="lang-toggle" onclick="toggleLangDropdown(event)" title="Language">
+            <button class="lang-toggle" id="lang-toggle" onclick="toggleLangDropdown(event)" title="Language" aria-expanded="false" aria-controls="lang-dropdown">
                 <svg viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM5.78 8.75a9.64 9.64 0 0 0 1.363 4.177c.255.426.542.832.857 1.215.245-.296.551-.705.857-1.215A9.64 9.64 0 0 0 10.22 8.75Zm4.44-1.5a9.64 9.64 0 0 0-1.363-4.177c-.307-.51-.612-.919-.857-1.215a9.927 9.927 0 0 0-.857 1.215A9.64 9.64 0 0 0 5.78 7.25Zm-5.944 1.5H1.543a6.507 6.507 0 0 0 4.666 5.5c-.123-.181-.24-.365-.352-.552-.715-1.192-1.437-2.874-1.581-4.948Zm-2.733-1.5h2.733c.144-2.074.866-3.756 1.58-4.948.12-.197.237-.381.353-.552a6.507 6.507 0 0 0-4.666 5.5Zm10.181 1.5c-.144 2.074-.866 3.756-1.58 4.948-.12.197-.237.381-.353.552a6.507 6.507 0 0 0 4.666-5.5Zm2.733-1.5a6.507 6.507 0 0 0-4.666-5.5c.123.181.24.365.353.552.714 1.192 1.436 2.874 1.58 4.948Z"/></svg>
                 <span class="lang-label" id="current-lang-label">EN</span>
             </button>
@@ -803,18 +938,32 @@
     </div>
 </header>
 
-<div class="container">
+<main class="container" id="main-content" tabindex="-1">
 
     <!-- ===== Page Header ===== -->
     <div class="PageHeader">
+        <div class="hero-eyebrow">Copilot / Network diagnostics</div>
         <h1>
             <svg width="20" height="20" viewBox="0 0 16 16" fill="var(--accent-fgColor)"><path d="M7.998 15.035c-4.562 0-7.873-2.914-7.998-3.749V9.338c.085-.628.677-1.686 1.588-2.065.013-.07.024-.143.036-.218.029-.183.06-.384.126-.612-.201-.508-.254-1.084-.254-1.656 0-.87.128-1.769.693-2.484.579-.733 1.494-1.124 2.724-1.261 1.206-.134 2.262.034 2.944.765.05.053.096.108.139.165.044-.057.094-.112.143-.165.682-.731 1.738-.899 2.944-.765 1.23.137 2.145.528 2.724 1.261.566.715.693 1.614.693 2.484 0 .572-.053 1.148-.254 1.656.066.228.098.429.126.612.012.076.024.148.037.218.924.385 1.522 1.471 1.591 2.095v1.872c0 .766-3.351 3.795-8.002 3.795Zm0-1.485c2.28 0 4.584-1.11 5.002-1.433V7.862l-.023-.116c-.49.21-1.075.291-1.727.291-1.146 0-2.059-.327-2.71-.991A3.222 3.222 0 0 1 8 6.303a3.24 3.24 0 0 1-.544.743c-.65.664-1.563.991-2.71.991-.652 0-1.236-.081-1.727-.291l-.023.116v4.255c.419.323 2.722 1.433 5.002 1.433ZM6.762 2.83c-.193-.206-.637-.413-1.682-.297-1.019.113-1.479.404-1.713.7-.247.312-.369.789-.369 1.554 0 .793.129 1.171.308 1.371.162.181.519.379 1.442.379.853 0 1.339-.235 1.638-.54.315-.322.527-.827.617-1.553.117-.935-.037-1.395-.241-1.614Zm4.155-.297c-1.044-.116-1.488.091-1.681.297-.204.219-.359.679-.242 1.614.091.726.303 1.231.618 1.553.299.305.784.54 1.638.54.922 0 1.28-.198 1.442-.379.179-.2.308-.578.308-1.371 0-.765-.123-1.242-.37-1.554-.233-.296-.693-.587-1.713-.7Z"/><path d="M6.25 9.037a.75.75 0 0 1 .75.75v1.501a.75.75 0 0 1-1.5 0V9.787a.75.75 0 0 1 .75-.75Zm4.25.75v1.501a.75.75 0 0 1-1.5 0V9.787a.75.75 0 0 1 1.5 0Z"/></svg>
             <span data-i18n="page.title">Copilot Network Connectivity Check</span>
         </h1>
         <p data-i18n="page.subtitle">Verify required network endpoints and generate firewall allowlist rules for GitHub Copilot</p>
+        <div class="hero-links">
+            <a href="#environment-card" data-i18n="hero.start">Start with your environment ↓</a>
+            <a href="https://docs.github.com/en/copilot/how-tos/troubleshoot-copilot/troubleshoot-network-errors" target="_blank" data-i18n="hero.docs">Read the network guide ↗</a>
+        </div>
+        <svg class="hero-art" viewBox="0 0 280 240" fill="none" aria-hidden="true">
+            <path d="M20 120H90L155 45H255M90 120L155 195H255M90 120H240" stroke="currentColor" stroke-width="2"/>
+            <rect x="8" y="108" width="24" height="24" rx="6" fill="currentColor"/>
+            <circle cx="90" cy="120" r="14" stroke="currentColor" stroke-width="2"/>
+            <circle cx="255" cy="45" r="10" fill="currentColor"/>
+            <circle cx="250" cy="120" r="10" fill="currentColor"/>
+            <circle cx="255" cy="195" r="10" fill="currentColor"/>
+        </svg>
     </div>
 
-    <div class="Box">
+    <div class="setup-grid">
+    <div class="Box configuration" id="environment-card" tabindex="-1">
         <div class="Box-header"><h2 data-i18n="config.title">Environment and features</h2></div>
         <div class="Box-body">
             <p data-i18n="config.scope">These settings apply to the allowlist, browser checks, and generated scripts.</p>
@@ -863,54 +1012,62 @@
             </div>
             <label class="form-checkbox" id="public-code-option" hidden><input type="checkbox" id="opt-public-code" checked> <span data-i18n="config.publicCode">Public code detection</span></label>
             <label class="form-checkbox"><input type="checkbox" id="opt-voice"> <span data-i18n="config.voice">CLI / Copilot app voice model downloads</span></label>
-            <p data-i18n="config.limit">Wildcard rules cannot be fully tested. Run scripts in the affected client environment; your browser may use different proxy and certificate settings.</p>
+            <p class="scope-note" data-i18n="config.limit">Wildcard rules cannot be fully tested. Run scripts in the affected client environment; your browser may use different proxy and certificate settings.</p>
             <div id="config-error" class="flash flash-warn" role="alert" hidden></div>
         </div>
     </div>
 
     <!-- ===== Quick Check ===== -->
-    <div class="Box">
+    <div class="Box quick-check">
         <div class="Box-header">
             <h2 data-i18n="quickCheck.title">Quick Check</h2>
+        </div>
+        <div class="Box-body" data-i18n="quickCheck.desc">
+            Checks representative endpoints for the selected environment, not every wildcard host or Copilot authentication.
+        </div>
+        <div class="quick-action">
             <button class="btn btn-primary" id="btn-run" onclick="runCheck()">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path></svg>
                 <span data-i18n="quickCheck.run">Run Check</span>
             </button>
         </div>
-        <div class="Box-body" style="color:var(--fgColor-muted);font-size:13px;" data-i18n="quickCheck.desc">
-            Checks representative endpoints for the selected environment, not every wildcard host or Copilot authentication.
-        </div>
-        <div class="Box-footer">
-            <button class="btn btn-sm" onclick="toggleSection('firewall-section')">📋 <span data-i18n="quickCheck.firewall">Firewall Checklist</span></button>
-            <button class="btn btn-sm" onclick="toggleSection('cloud-agent-section')">☁️ <span data-i18n="quickCheck.cloudAgent">Cloud Agent</span></button>
-            <button class="btn btn-sm" onclick="toggleSection('script-section')">⚙️ <span data-i18n="quickCheck.script">Generate Script</span></button>
-            <button class="btn btn-sm" onclick="toggleSection('ide-section')">💻 <span data-i18n="quickCheck.ide">IDE Diagnostics</span></button>
-        </div>
+        <div class="Box-body quick-note" data-i18n="hero.browserNote">Browser success is not client recovery. Use a local script when Copilot still cannot connect.</div>
     </div>
+    </div>
+    <nav class="tool-nav" aria-label="Diagnostic tools" id="tool-nav" tabindex="-1">
+        <button class="tool-card" aria-controls="script-section" aria-expanded="false" onclick="toggleSection('script-section')"><strong data-i18n="quickCheck.script">Generate Script</strong><span data-i18n="nav.script">Run checks in the affected environment.</span></button>
+        <button class="tool-card" aria-controls="firewall-section" aria-expanded="false" onclick="toggleSection('firewall-section')"><strong data-i18n="quickCheck.firewall">Firewall Checklist</strong><span data-i18n="nav.firewall">Prepare rules for your IT team.</span></button>
+        <button class="tool-card" aria-controls="ide-section" aria-expanded="false" onclick="toggleSection('ide-section')"><strong data-i18n="quickCheck.ide">IDE Diagnostics</strong><span data-i18n="nav.ide">Find client logs and proxy settings.</span></button>
+        <button class="tool-card" aria-controls="cloud-agent-section" aria-expanded="false" onclick="toggleSection('cloud-agent-section')"><strong data-i18n="quickCheck.cloudAgent">Cloud Agent</strong><span data-i18n="nav.cloud">Separate rules for cloud execution.</span></button>
+    </nav>
 
     <!-- ===== Live Results ===== -->
     <div id="results-section" class="section-panel">
+        <a class="back-tools" href="#tool-nav" data-i18n="nav.back">↑ Diagnostic tools</a>
         <div class="Box">
             <div class="Box-header">
-                <h2 data-i18n="results.title">Results</h2>
+                <div>
+                    <h2 data-i18n="results.title">Results</h2>
+                    <p class="results-scope" data-i18n="results.scope">Browser requests · not an authenticated Copilot check</p>
+                </div>
                 <div class="ActionBar" id="export-bar" style="display:none;">
-                    <button class="btn btn-sm" onclick="copyResultsText(this)">📋 <span data-i18n="results.copyText">Copy Text</span></button>
-                    <button class="btn btn-sm" onclick="downloadResultsJSON()">💾 <span data-i18n="results.json">JSON</span></button>
+                    <button class="btn btn-sm" onclick="copyResultsText(this)"><span data-result-icon="copy" aria-hidden="true"></span><span data-i18n="results.copyText">Copy Text</span></button>
+                    <button class="btn btn-sm" onclick="downloadResultsJSON()"><span data-result-icon="download" aria-hidden="true"></span><span data-i18n="results.json">JSON</span></button>
                 </div>
             </div>
             <div class="Box-body">
-                <div class="flash flash-info" style="margin-bottom:12px;" data-i18n-html="results.info">
-                    ℹ️ Browser-based check uses <code>fetch(no-cors)</code> to test reachability.
-                    A ✓ only means the browser request completed; HTTP status and Copilot health are not verified.
-                </div>
-                <p data-i18n="config.changed"></p>
                 <div class="counter-group">
-                    <div class="counter-item">✅ <span class="Counter" id="count-pass">0</span> <span data-i18n="results.reachable">Request completed</span></div>
-                    <div class="counter-item">⚠️ <span class="Counter" id="count-warn">0</span> <span data-i18n="results.slow">Slow</span></div>
-                    <div class="counter-item">❌ <span class="Counter" id="count-fail">0</span> <span data-i18n="results.blocked">Request failed</span></div>
-                    <div class="counter-item">⏳ <span class="Counter" id="count-pending">0</span> <span data-i18n="results.pending">Pending</span></div>
+                    <div class="counter-item" data-status="pass"><span class="counter-label"><span data-result-icon="pass" aria-hidden="true"></span><span data-i18n="results.reachable">Request completed</span></span><span class="Counter" id="count-pass">0</span></div>
+                    <div class="counter-item" data-status="warn"><span class="counter-label"><span data-result-icon="warn" aria-hidden="true"></span><span data-i18n="results.slow">Slow</span></span><span class="Counter" id="count-warn">0</span></div>
+                    <div class="counter-item" data-status="fail"><span class="counter-label"><span data-result-icon="fail" aria-hidden="true"></span><span data-i18n="results.blocked">Request failed</span></span><span class="Counter" id="count-fail">0</span></div>
+                    <div class="counter-item" data-status="pending"><span class="counter-label"><span data-result-icon="pending" aria-hidden="true"></span><span data-i18n="results.pending">Pending</span></span><span class="Counter" id="count-pending">0</span></div>
                 </div>
-                <div class="Progress"><div class="Progress-item" id="progress-fill" style="width:0%"></div></div>
+                <div class="results-progress"><span id="results-run-state" role="status"></span><span id="results-progress-count"></span></div>
+                <div class="Progress" id="results-progress" role="progressbar" aria-label="Requests checked" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="Progress-item" id="progress-fill" style="width:0%"></div></div>
+                <div class="results-note" data-i18n-html="results.info">
+                    Browser requests cannot verify HTTP status, authentication, or Copilot functionality.
+                </div>
+                <p class="results-context" data-i18n="config.changed"></p>
                 <div id="results-container"></div>
             </div>
         </div>
@@ -918,6 +1075,7 @@
 
     <!-- ===== Firewall Checklist ===== -->
     <div id="firewall-section" class="section-panel">
+        <a class="back-tools" href="#tool-nav" data-i18n="nav.back">↑ Diagnostic tools</a>
         <div class="Box">
             <div class="Box-header">
                 <h2>📋 <span data-i18n="firewall.title">Firewall / Proxy Allowlist</span></h2>
@@ -955,6 +1113,7 @@
 
     <!-- ===== Cloud Agent Firewall ===== -->
     <div id="cloud-agent-section" class="section-panel">
+        <a class="back-tools" href="#tool-nav" data-i18n="nav.back">↑ Diagnostic tools</a>
         <div class="Box">
             <div class="Box-header">
                 <h2>☁️ <span data-i18n="cloudAgent.title">Cloud Agent Firewall Allowlist</span></h2>
@@ -977,6 +1136,7 @@
 
     <!-- ===== Script Generator ===== -->
     <div id="script-section" class="section-panel">
+        <a class="back-tools" href="#tool-nav" data-i18n="nav.back">↑ Diagnostic tools</a>
         <div class="Box">
             <div class="Box-header">
                 <h2>⚙️ <span data-i18n="script.title">Diagnostic Script</span></h2>
@@ -994,21 +1154,41 @@
                 </div>
                 <p data-i18n="path.browserLimit">The proxy URL applies to scripts only. It does not change your browser's proxy or VPN route.</p>
             </div>
-            <div class="UnderlineNav">
-                <button class="UnderlineNav-item selected" onclick="switchScriptTab('bash', this)">Bash</button>
-                <button class="UnderlineNav-item" onclick="switchScriptTab('zsh', this)">Zsh</button>
-                <button class="UnderlineNav-item" onclick="switchScriptTab('powershell', this)">PowerShell</button>
+            <div class="UnderlineNav" id="script-shell-tabs" role="group" aria-label="Script shell">
+                <button class="UnderlineNav-item selected" aria-pressed="true" onclick="switchScriptTab('bash', this)">Bash</button>
+                <button class="UnderlineNav-item" aria-pressed="false" onclick="switchScriptTab('zsh', this)">Zsh</button>
+                <button class="UnderlineNav-item" aria-pressed="false" onclick="switchScriptTab('powershell', this)">PowerShell</button>
             </div>
             <div class="Box-body" id="basic-shell-help">
-                <p data-i18n="script.shellHelp">Download the script or paste the copied content into a text editor and save it as a file. Do not paste the entire script into a terminal: zsh may report “event not found” for the #! line. Open a terminal in the saved file's folder and run the command below.</p>
-                <code id="basic-shell-command">bash ./copilot-network-check.sh</code>
+                <ol class="script-steps">
+                    <li>
+                        <strong data-i18n="script.saveStep">Save and review the script</strong>
+                        <p data-i18n="script.keepLocal">The script contains your entered addresses. Keep it local and review it before running.</p>
+                        <button class="btn btn-primary" id="download-script" onclick="downloadScript()"><span id="basic-download-label">Download Bash file (.sh)</span></button>
+                    </li>
+                    <li>
+                        <strong data-i18n="script.folderStep">Open a terminal in the saved file's folder</strong>
+                        <p data-i18n="path.location">Run in the environment where the client fails, including a VM, WSL, container, or remote session. Follow your organization's execution policy.</p>
+                    </li>
+                    <li>
+                        <strong data-i18n="script.commandStep">Run only this command</strong>
+                        <p data-i18n="script.commandHelp">Use the selected shell (PowerShell for .ps1). If you renamed the file, update its name in the command. Do not paste the entire script into the terminal.</p>
+                        <div class="script-command">
+                            <code id="basic-shell-command">bash ./copilot-network-check.sh</code>
+                            <button class="btn btn-sm" id="copy-script-command" onclick="copyScriptCommand(this)" aria-live="polite" data-i18n="script.copyCommand">Copy run command</button>
+                        </div>
+                    </li>
+                </ol>
             </div>
-            <div class="Box-body" style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button class="btn btn-sm" id="copy-script" onclick="copyScript(this)">📋 <span data-i18n="script.copy">Copy script</span></button>
-                <button class="btn btn-sm" id="download-script-txt" onclick="downloadScript(true)">💾 <span data-i18n="script.downloadTxt">Download .txt</span></button>
-                <button class="btn btn-sm" id="download-script" onclick="downloadScript()">💾 <span data-i18n="script.download">Download script (.sh / .zsh / .ps1)</span></button>
-            </div>
-            <div class="code-block" id="script-content"></div>
+            <details class="script-source" id="basic-script-source">
+                <summary data-i18n="script.source">Review script contents / other save options</summary>
+                <p class="Box-body" data-i18n="script.shellHelp">Save copied contents in a text editor, not in a terminal.</p>
+                <div class="Box-body">
+                    <button class="btn btn-sm" id="copy-script" onclick="copyScript(this)">📋 <span data-i18n="script.copy">Copy file contents — for a text editor</span></button>
+                    <button class="btn btn-sm" id="download-script-txt" onclick="downloadScript(true)">💾 <span data-i18n="script.downloadTxt">Download .txt</span></button>
+                </div>
+                <div class="code-block" id="script-content"></div>
+            </details>
         </div>
         <details class="Box" id="advanced-diagnostics">
             <summary style="padding:16px;cursor:pointer;font-weight:600;" data-i18n="advanced.title">Advanced diagnostics by OS (optional)</summary>
@@ -1060,33 +1240,54 @@
                 </details>
                 <h3 style="margin-top:16px;" data-i18n="path.run">Run and share</h3>
                 <p id="path-instructions"></p>
-                <p data-i18n="path.location">Run inside the environment where the client fails. For a VM, WSL, container, or remote session, select its OS, not the host OS. Follow your organization's execution policy.</p>
-                <code id="path-command">.\copilot-path-check.ps1</code>
+                <ol class="script-steps">
+                    <li>
+                        <strong data-i18n="script.saveStep">Save and review the script</strong>
+                        <p data-i18n="script.keepLocal">The script contains your entered addresses. Keep it local and review it before running.</p>
+                        <button class="btn btn-primary" id="download-path-script" onclick="downloadScript(false, 'path')"><span id="path-download-label">Download PowerShell file</span> <span id="path-extension">(.ps1)</span></button>
+                    </li>
+                    <li>
+                        <strong data-i18n="script.folderStep">Open a terminal in the saved file's folder</strong>
+                        <p data-i18n="path.location">Run inside the environment where the client fails. For a VM, WSL, container, or remote session, select its OS, not the host OS. Follow your organization's execution policy.</p>
+                    </li>
+                    <li>
+                        <strong data-i18n="script.commandStep">Run only this command</strong>
+                        <p data-i18n="script.commandHelp">Use the selected shell (PowerShell for .ps1). If you renamed the file, update its name in the command. Do not paste the entire script into the terminal.</p>
+                        <div class="script-command">
+                            <code id="path-command">.\copilot-path-check.ps1</code>
+                            <button class="btn btn-sm" id="copy-path-command" onclick="copyScriptCommand(this, 'path')" aria-live="polite" data-i18n="script.copyCommand">Copy run command</button>
+                        </div>
+                    </li>
+                </ol>
                 <p data-i18n="path.output">Saves a report with a unique filename, copilot-path-check-*.json, in the current directory and prints a summary. Stages that could not be observed are marked unknown. After saving the report, the script exits with code 1 for failed or unrun checks, or code 2 for warnings or incomplete configuration collection.</p>
                 <p class="flash flash-warn" data-i18n="path.privacy">The downloaded script contains your entered proxy and tenant addresses: keep it local. The JSON omits proxy/PAC URLs, credentials, response bodies, raw errors, and private tenant/enterprise identifiers. Review the JSON before sharing; no report is uploaded by this page.</p>
                 <p data-i18n="path.followup">After an approved configuration change, restart the affected client and retry the originally failing login or Chat operation. Collect IDE diagnostics if it still fails. This script cannot certify Copilot recovery or diagnose VPN split tunneling.</p>
                 <p><a href="https://docs.github.com/en/copilot/how-tos/troubleshoot-copilot/troubleshoot-network-errors" target="_blank" data-i18n="footer.network">Network settings</a> · <a href="https://curl.se/docs/manpage.html" target="_blank">curl reference</a></p>
             </div>
-            <div class="Box-body" style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button class="btn btn-sm" id="copy-path-script" onclick="copyScript(this, 'path')">📋 <span data-i18n="script.copy">Copy script</span></button>
-                <button class="btn btn-sm" id="download-path-script-txt" onclick="downloadScript(true, 'path')">💾 <span data-i18n="script.downloadTxt">Download .txt</span></button>
-                <button class="btn btn-sm" id="download-path-script" onclick="downloadScript(false, 'path')">💾 <span data-i18n="path.download">Download script</span> <span id="path-extension">(.ps1)</span></button>
-            </div>
-            <div class="code-block" id="path-script-content"></div>
+            <details class="script-source" id="path-script-source">
+                <summary data-i18n="script.source">Review script contents / other save options</summary>
+                <p class="Box-body" data-i18n="script.shellHelp">Save copied contents in a text editor, not in a terminal.</p>
+                <div class="Box-body">
+                    <button class="btn btn-sm" id="copy-path-script" onclick="copyScript(this, 'path')">📋 <span data-i18n="script.copy">Copy file contents — for a text editor</span></button>
+                    <button class="btn btn-sm" id="download-path-script-txt" onclick="downloadScript(true, 'path')">💾 <span data-i18n="script.downloadTxt">Download .txt</span></button>
+                </div>
+                <div class="code-block" id="path-script-content"></div>
+            </details>
         </details>
     </div>
 
     <!-- ===== IDE Diagnostics ===== -->
     <div id="ide-section" class="section-panel">
+        <a class="back-tools" href="#tool-nav" data-i18n="nav.back">↑ Diagnostic tools</a>
         <div class="Box">
             <div class="Box-header"><h2>💻 <span data-i18n="ide.title">IDE Network Diagnostics</span></h2></div>
-            <div class="UnderlineNav">
-                <button class="UnderlineNav-item selected" onclick="switchIdeTab('vscode', this)">VS Code</button>
-                <button class="UnderlineNav-item" onclick="switchIdeTab('jetbrains', this)">JetBrains</button>
-                <button class="UnderlineNav-item" onclick="switchIdeTab('vs', this)">Visual Studio</button>
-                <button class="UnderlineNav-item" onclick="switchIdeTab('xcode', this)">Xcode</button>
-                <button class="UnderlineNav-item" onclick="switchIdeTab('cli', this)">Copilot CLI / app</button>
-                <button class="UnderlineNav-item" onclick="switchIdeTab('other', this)">Eclipse / Neovim</button>
+            <div class="UnderlineNav" id="ide-tabs" role="group" aria-label="IDE Diagnostics">
+                <button class="UnderlineNav-item selected" aria-pressed="true" onclick="switchIdeTab('vscode', this)">VS Code</button>
+                <button class="UnderlineNav-item" aria-pressed="false" onclick="switchIdeTab('jetbrains', this)">JetBrains</button>
+                <button class="UnderlineNav-item" aria-pressed="false" onclick="switchIdeTab('vs', this)">Visual Studio</button>
+                <button class="UnderlineNav-item" aria-pressed="false" onclick="switchIdeTab('xcode', this)">Xcode</button>
+                <button class="UnderlineNav-item" aria-pressed="false" onclick="switchIdeTab('cli', this)">Copilot CLI / app</button>
+                <button class="UnderlineNav-item" aria-pressed="false" onclick="switchIdeTab('other', this)">Eclipse / Neovim</button>
             </div>
             <div class="ide-guide" id="ide-content"></div>
         </div>
@@ -1102,7 +1303,7 @@
         <div data-i18n="footer.built">Built for GitHub Support</div>
         <div data-i18n="footer.verified">Documentation reviewed: 2026-10-06. Rules are a snapshot, not a live service inventory.</div>
     </div>
-</div>
+</main>
 
 <script>
 // ============================================================
@@ -1124,7 +1325,11 @@ const TRANSLATIONS = {
         'results.title': 'Results',
         'results.copyText': 'Copy Text',
         'results.json': 'JSON',
-        'results.info': 'ℹ️ <code>fetch(no-cors)</code> cannot inspect HTTP status or content. A ✓ only means the browser request completed, not that Copilot is healthy. Failures may be caused by DNS, TLS, browser restrictions, extensions, or a firewall. Use the script to check HTTP status.',
+        'results.scope': 'Browser requests · not an authenticated Copilot check',
+        'results.running': 'Checking requests',
+        'results.finished': 'Browser check finished',
+        'results.progress': 'Requests checked',
+        'results.info': '<code>fetch(no-cors)</code> cannot inspect HTTP status or content. A completed request does not verify Copilot functionality. Failures may be caused by DNS, TLS, browser restrictions, extensions, or a firewall. Use the script to check HTTP status.',
         'results.reachable': 'Request completed',
         'results.slow': 'Slow',
         'results.blocked': 'Request failed',
@@ -1146,8 +1351,31 @@ const TRANSLATIONS = {
         'cloudAgent.info': '<p>Configure cloud agent and code review separately under <strong>Settings → Copilot → Internet access</strong> in your organization or repository. Organization rules are combined with permitted repository rules. The list below is the documented, default-enabled cloud agent allowlist. It is not a workstation firewall list or a separately verified list of code review requirements.</p><p>The agent firewall applies only to agent Bash processes inside the Actions environment, not directly to MCP server processes or setup steps. Domain rules include subdomains; URL rules specify the scheme, host, and path. <a href="https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall" target="_blank">Firewall documentation and limitations</a></p>',
         'cloudAgent.expandAll': 'Expand All',
         'cloudAgent.collapseAll': 'Collapse All',
+        'nav.skip': 'Skip to content',
+        'nav.tools': 'Diagnostic tools',
+        'nav.back': '↑ Diagnostic tools',
+        'rule.required': 'Required',
+        'rule.optional': 'Optional',
+        'rule.routing': 'Routing',
+        'nav.language': 'Language',
+        'nav.theme': 'Switch light / dark theme',
+        'nav.script': 'Run checks in the affected environment.',
+        'nav.firewall': 'Prepare rules for your IT team.',
+        'nav.ide': 'Find client logs and proxy settings.',
+        'nav.cloud': 'Separate rules for cloud execution.',
+        'hero.start': 'Start with your environment ↓',
+        'hero.docs': 'Read the network guide ↗',
+        'hero.browserNote': 'Browser success is not client recovery. Use a local script when Copilot still cannot connect.',
         'script.title': 'Diagnostic Script',
-        'script.copy': 'Copy script',
+        'script.copy': 'Copy file contents — for a text editor',
+        'script.saveStep': 'Save and review the script',
+        'script.keepLocal': 'The script contains your entered addresses. Keep it local and review it before running.',
+        'script.folderStep': 'Open a terminal in the saved file’s folder',
+        'script.commandStep': 'Run only this command',
+        'script.commandHelp': 'Use the selected shell (PowerShell for .ps1). If you renamed the file, update its name in the command. Do not paste the entire script into the terminal.',
+        'script.copyCommand': 'Copy run command',
+        'script.source': 'Review script contents / other save options',
+        'script.downloadFile': 'Download {shell} file',
         'script.download': 'Download script (.sh / .zsh / .ps1)',
         'script.downloadTxt': 'Download .txt',
         'script.shellHelp': 'Download the script or paste the copied content into a text editor and save it as a file. Do not paste the entire script into a terminal: zsh may report “event not found” for the #! line. Open a terminal in the saved file’s folder and run the command below.',
@@ -1183,7 +1411,7 @@ const TRANSLATIONS = {
         'path.health': 'HTTP 200 on a health probe checks only that request. A CONNECT 200 alone is not an endpoint HTTP 200. Login, policy, response content, and other features remain unverified.',
         'path.run': 'Run and share',
         'path.instructions.windows': 'Download and review the .ps1, then run it in PowerShell on Windows with curl.exe installed. Do not bypass script execution policy.',
-        'path.instructions.unix': 'Download and review the .sh (Bash) or .zsh (Zsh) file. Copy copies file contents, not a terminal command; save it in a text editor rather than pasting it into zsh, which may report “event not found” for #!. In the saved file’s folder, run the command below. Requires the selected shell (Bash 3.2+ or Zsh 5+) and curl; no Python or jq required.',
+        'path.instructions.unix': 'Requires Bash 3.2+ or Zsh 5+, matching your selection, and curl. No Python or jq required. Follow the file-based steps below.',
         'path.location': 'Run inside the environment where the client fails. For a VM, WSL, container, or remote session, select its OS, not the host OS. Follow your organization’s execution policy.',
         'path.output': 'Saves a report with a unique filename, copilot-path-check-*.json, in the current directory and prints a summary. Stages that could not be observed are marked unknown. After saving the report, the script exits with code 1 for failed or unrun checks, or code 2 for warnings or incomplete configuration collection.',
         'path.privacy': 'The downloaded script contains your entered proxy and tenant addresses: keep it local. The JSON omits proxy/PAC URLs, credentials, response bodies, raw errors, and private tenant/enterprise identifiers. Review the JSON before sharing; no report is uploaded by this page.',
@@ -1236,7 +1464,11 @@ const TRANSLATIONS = {
         'results.title': '結果',
         'results.copyText': 'テキストをコピー',
         'results.json': 'JSON',
-        'results.info': 'ℹ️ <code>fetch(no-cors)</code>ではHTTPステータスや内容を確認できません。✓はリクエストの完了を示し、Copilotの正常動作を保証しません。失敗の原因にはDNS、TLS、ブラウザの制限、拡張機能、ファイアウォールがあります。HTTPステータスはスクリプトで確認してください。',
+        'results.scope': 'ブラウザーからのリクエスト · Copilotの認証は未確認',
+        'results.running': 'リクエストを確認中',
+        'results.finished': 'ブラウザーでの確認が終了しました',
+        'results.progress': '確認済みリクエスト',
+        'results.info': '<code>fetch(no-cors)</code>ではHTTPステータスや内容を確認できません。リクエストの完了はCopilotの正常動作を保証しません。失敗の原因にはDNS、TLS、ブラウザーの制限、拡張機能、ファイアウォールがあります。HTTPステータスはスクリプトで確認してください。',
         'results.reachable': 'リクエスト完了',
         'results.slow': '応答に遅延',
         'results.blocked': 'リクエスト失敗',
@@ -1258,8 +1490,31 @@ const TRANSLATIONS = {
         'cloudAgent.info': '<p>組織またはリポジトリの<strong>Settings → Copilot → Internet access</strong>で、クラウドエージェントとコードレビューを個別に設定します。組織のルールと、許可されたリポジトリのルールが組み合わせて適用されます。以下は公式ドキュメントに記載された、既定で有効なクラウドエージェントの推奨許可リストです。利用者のPC向けのルールや、コードレビュー専用に検証したリストではありません。</p><p>エージェントのファイアウォールは、Actions環境内でエージェントが実行するBashプロセスにのみ適用されます。MCPサーバーのプロセスやセットアップ手順には直接適用されません。ドメインのルールはサブドメインも含み、URLのルールはスキーム・ホスト・パスを指定します。<a href="https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall" target="_blank">公式ドキュメントと制限事項</a></p>',
         'cloudAgent.expandAll': 'すべて展開',
         'cloudAgent.collapseAll': 'すべて折りたたむ',
+        'nav.skip': '本文へ移動',
+        'nav.tools': '診断ツール',
+        'nav.back': '↑ 診断ツール一覧へ',
+        'rule.required': '必須',
+        'rule.optional': '任意',
+        'rule.routing': 'ルーティング',
+        'nav.language': '言語',
+        'nav.theme': 'ライト / ダークテーマの切り替え',
+        'nav.script': '問題が発生する環境で検査します。',
+        'nav.firewall': 'ITチームに共有するルールを作成します。',
+        'nav.ide': 'クライアントのログやプロキシ設定を確認します。',
+        'nav.cloud': 'クラウド実行用のルールを確認します。',
+        'hero.start': '利用環境の設定から始める ↓',
+        'hero.docs': 'ネットワークガイドを読む ↗',
+        'hero.browserNote': 'ブラウザーでの成功はクライアントの復旧を意味しません。Copilotが接続できない場合は、ローカルでスクリプトを実行してください。',
         'script.title': '診断スクリプト',
-        'script.copy': 'スクリプトをコピー',
+        'script.copy': 'ファイル内容をコピー — エディター保存用',
+        'script.saveStep': 'スクリプトを保存して内容を確認',
+        'script.keepLocal': '入力したアドレスが含まれます。スクリプトは手元で管理し、実行前に内容を確認してください。',
+        'script.folderStep': '保存先のフォルダーでターミナルを開く',
+        'script.commandStep': 'このコマンドだけを実行',
+        'script.commandHelp': '選択したシェル（.ps1はPowerShell）を使用してください。ファイル名を変更した場合はコマンドも修正してください。スクリプト全体をターミナルに貼り付けないでください。',
+        'script.copyCommand': '実行コマンドをコピー',
+        'script.source': 'スクリプトの内容を確認 / その他の保存方法',
+        'script.downloadFile': '{shell}ファイルをダウンロード',
         'script.download': 'スクリプトを保存 (.sh / .zsh / .ps1)',
         'script.downloadTxt': '.txtを保存',
         'script.shellHelp': 'スクリプトをダウンロードするか、コピーした内容をテキストエディターに貼り付けてファイルに保存してください。スクリプト全体をターミナルに貼り付けると、zshが#!の行で「event not found」エラーを表示する場合があります。保存先のフォルダーをターミナルで開き、下のコマンドを実行してください。',
@@ -1295,7 +1550,7 @@ const TRANSLATIONS = {
         'path.health': 'ヘルスチェック用エンドポイントのHTTP 200は、そのリクエストに応答があったことだけを示します。CONNECT 200は、最終的なHTTP応答が200であることを意味しません。ログイン・ポリシー・応答内容・他の機能は確認していません。',
         'path.run': '実行と共有',
         'path.instructions.windows': '.ps1ファイルをダウンロードして内容を確認し、curl.exeがインストールされたWindowsのPowerShellで実行してください。スクリプトの実行ポリシーは回避しないでください。',
-        'path.instructions.unix': '.sh（Bash）または.zsh（Zsh）ファイルをダウンロードして内容を確認してください。コピーボタンはファイルの内容をコピーします。zshに直接貼り付けると#!の行で「event not found」エラーが出る場合があるため、テキストエディターで保存してください。保存先のフォルダーで下のコマンドを実行します。選択したシェル（Bash 3.2以降またはZsh 5以降）とcurlが必要です。Pythonやjqは不要です。',
+        'path.instructions.unix': '選択したシェル（Bash 3.2以降またはZsh 5以降）とcurlが必要です。Pythonやjqは不要です。以下の手順でファイルとして実行してください。',
         'path.location': '問題が発生する環境の中で実行してください。VM・WSL・コンテナー・リモートセッションでは、ホストではなく、その環境のOSを選択してください。社内の実行ポリシーに従ってください。',
         'path.output': '現在のフォルダーに、重複しないファイル名でcopilot-path-check-*.jsonを保存し、概要を表示します。確認できなかった段階は不明として記録します。レポート保存後、検査の失敗・未実行は終了コード1、警告・設定情報の収集不足は終了コード2を返します。',
         'path.privacy': 'ダウンロードしたスクリプトには入力したプロキシ・テナントのアドレスが含まれるため、ローカルで管理してください。JSONにはプロキシ・PAC URL、認証情報、応答本文、生のエラー、非公開テナント・Enterprise識別子を含めません。共有前に内容を確認してください。このページへのアップロードは行いません。',
@@ -1348,7 +1603,11 @@ const TRANSLATIONS = {
         'results.title': '결과',
         'results.copyText': '텍스트 복사',
         'results.json': 'JSON',
-        'results.info': 'ℹ️ <code>fetch(no-cors)</code>는 HTTP 상태나 내용을 읽을 수 없습니다. ✓는 브라우저 요청 완료일 뿐 Copilot 정상 작동을 보장하지 않습니다. 실패 원인은 DNS, TLS, 브라우저 제한, 확장 기능, 방화벽 등입니다. HTTP 상태는 생성 스크립트로 확인하세요.',
+        'results.scope': '브라우저 요청 기준 · Copilot 인증은 미확인',
+        'results.running': '요청 확인 중',
+        'results.finished': '브라우저 검사 종료',
+        'results.progress': '확인한 요청',
+        'results.info': '<code>fetch(no-cors)</code>는 HTTP 상태나 내용을 읽을 수 없습니다. 요청 완료가 Copilot 정상 작동을 보장하지는 않습니다. 실패 원인은 DNS, TLS, 브라우저 제한, 확장 기능, 방화벽 등입니다. HTTP 상태는 생성 스크립트로 확인하세요.',
         'results.reachable': '요청 완료',
         'results.slow': '지연',
         'results.blocked': '요청 실패',
@@ -1370,8 +1629,31 @@ const TRANSLATIONS = {
         'cloudAgent.info': '<p>조직 또는 저장소의 <strong>Settings → Copilot → Internet access</strong>에서 클라우드 에이전트와 코드 리뷰를 각각 설정합니다. 조직 규칙과 허용된 저장소 규칙이 함께 적용됩니다. 아래는 공식 문서에 안내된, 기본으로 활성화되는 클라우드 에이전트의 권장 허용 목록입니다. 사용자 PC용 방화벽 목록이나 코드 리뷰 전용으로 검증한 목록은 아닙니다.</p><p>에이전트 방화벽은 Actions 환경에서 에이전트가 실행하는 Bash 프로세스에만 적용됩니다. MCP 서버 프로세스나 설정 단계에는 직접 적용되지 않습니다. 도메인 규칙은 하위 도메인도 포함하며, URL 규칙은 스킴·호스트·경로를 지정합니다. <a href="https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall" target="_blank">공식 문서 및 제한 사항</a></p>',
         'cloudAgent.expandAll': '모두 펼치기',
         'cloudAgent.collapseAll': '모두 접기',
+        'nav.skip': '본문으로 이동',
+        'nav.tools': '진단 도구',
+        'nav.back': '↑ 진단 도구 목록으로',
+        'rule.required': '필수',
+        'rule.optional': '선택',
+        'rule.routing': '라우팅',
+        'nav.language': '언어',
+        'nav.theme': '라이트 / 다크 테마 전환',
+        'nav.script': '문제가 발생한 환경에서 직접 검사합니다.',
+        'nav.firewall': 'IT팀에 공유할 허용 규칙을 준비합니다.',
+        'nav.ide': '클라이언트 로그와 프록시 설정을 확인합니다.',
+        'nav.cloud': '클라우드 실행 환경의 별도 규칙을 확인합니다.',
+        'hero.start': '환경 설정부터 시작하기 ↓',
+        'hero.docs': '공식 네트워크 가이드 읽기 ↗',
+        'hero.browserNote': '브라우저 검사 성공이 클라이언트 복구를 의미하지는 않습니다. Copilot이 여전히 연결되지 않으면 로컬 스크립트로 확인하세요.',
         'script.title': '진단 스크립트',
-        'script.copy': '스크립트 복사',
+        'script.copy': '파일 내용 복사 — 편집기에 저장용',
+        'script.saveStep': '스크립트를 저장하고 내용 확인',
+        'script.keepLocal': '입력한 주소가 스크립트에 포함됩니다. 파일은 로컬에 보관하고 실행 전에 내용을 확인하세요.',
+        'script.folderStep': '저장한 폴더에서 터미널 열기',
+        'script.commandStep': '아래 명령만 실행',
+        'script.commandHelp': '선택한 셸(.ps1은 PowerShell)에서 실행하세요. 파일명을 변경했다면 명령의 파일명도 수정하세요. 스크립트 전체를 터미널에 붙여넣지 마세요.',
+        'script.copyCommand': '실행 명령 복사',
+        'script.source': '스크립트 내용 확인 / 다른 저장 방법',
+        'script.downloadFile': '{shell} 파일 다운로드',
         'script.download': '실행용 다운로드 (.sh / .zsh / .ps1)',
         'script.downloadTxt': '.txt 다운로드',
         'script.shellHelp': '스크립트를 다운로드하거나, 복사한 내용을 텍스트 편집기에 붙여넣어 파일로 저장하세요. 전체 스크립트를 터미널에 붙여넣으면 zsh가 #! 줄에서 “event not found” 오류를 낼 수 있습니다. 터미널에서 파일을 저장한 폴더로 이동한 뒤 아래 명령을 실행하세요.',
@@ -1407,7 +1689,7 @@ const TRANSLATIONS = {
         'path.health': '상태 확인용 엔드포인트의 HTTP 200은 해당 요청에 응답이 왔다는 뜻입니다. CONNECT 200이 최종 HTTP 응답도 200이라는 뜻은 아닙니다. 로그인·정책·응답 내용·다른 기능은 확인하지 않습니다.',
         'path.run': '실행 및 공유',
         'path.instructions.windows': '.ps1을 다운로드해 내용을 검토한 뒤 curl.exe가 설치된 Windows의 PowerShell에서 실행하세요. 스크립트 실행 정책을 우회하지 마세요.',
-        'path.instructions.unix': '.sh(Bash) 또는 .zsh(Zsh) 파일을 다운로드해 내용을 검토하세요. 복사 버튼은 실행 명령이 아닌 파일 내용을 복사합니다. zsh에 직접 붙여넣으면 #! 줄에서 “event not found” 오류가 날 수 있으므로 텍스트 편집기에서 파일로 저장하세요. 저장한 폴더에서 아래 명령을 실행하세요. 선택한 셸(Bash 3.2 이상 또는 Zsh 5 이상)과 curl이 필요하며 Python이나 jq는 필요하지 않습니다.',
+        'path.instructions.unix': '선택한 셸(Bash 3.2 이상 또는 Zsh 5 이상)과 curl이 필요합니다. Python이나 jq는 필요하지 않습니다. 아래 순서대로 파일로 저장해 실행하세요.',
         'path.location': '문제가 발생한 환경 안에서 실행하세요. VM·WSL·컨테이너·원격 세션에서는 호스트가 아닌 해당 환경의 OS를 선택하세요. 회사의 실행 정책을 따르세요.',
         'path.output': '현재 폴더에 이름이 중복되지 않는 copilot-path-check-*.json 보고서를 저장하고 요약을 출력합니다. 확인하지 못한 단계는 미확인으로 기록합니다. 보고서 저장 후 검사 실패·미실행은 종료 코드 1, 경고·설정 정보 수집 실패는 종료 코드 2를 반환합니다.',
         'path.privacy': '다운로드한 스크립트에는 입력한 프록시·테넌트 주소가 포함되므로 로컬에서 보관하세요. JSON에는 프록시·PAC URL, 인증 정보, 응답 본문, 원시 오류, 비공개 테넌트·Enterprise 식별자를 넣지 않습니다. 공유 전 내용을 확인하세요. 이 페이지로 결과를 업로드하지 않습니다.',
@@ -1485,6 +1767,18 @@ function applyLanguage() {
     });
     document.documentElement.lang = currentLang;
     document.title = t('page.title');
+    document.getElementById('tool-nav').ariaLabel = t('nav.tools');
+    document.getElementById('script-shell-tabs').ariaLabel = t('path.shell');
+    document.getElementById('ide-tabs').ariaLabel = t('ide.title');
+    document.getElementById('lang-toggle').ariaLabel = `${t('nav.language')}: ${labels[currentLang] || 'EN'}`;
+    document.getElementById('lang-toggle').title = t('nav.language');
+    document.getElementById('theme-toggle').ariaLabel = t('nav.theme');
+    document.getElementById('theme-toggle').title = t('nav.theme');
+    document.querySelectorAll('[data-result-icon]').forEach(el => { el.innerHTML = resultIcon(el.dataset.resultIcon); });
+    document.getElementById('results-progress').ariaLabel = t('results.progress');
+    if (document.getElementById('results-section').classList.contains('open')) {
+        document.getElementById('results-run-state').textContent = t(isRunning ? 'results.running' : 'results.finished');
+    }
     // Re-render dynamic content if sections are open
     if (document.getElementById('ide-section').classList.contains('open')) renderIdeGuide();
     if (document.getElementById('firewall-section').classList.contains('open')) renderFirewallChecklist();
@@ -1501,15 +1795,23 @@ function setLang(lang) {
 function toggleLangDropdown(e) {
     e.stopPropagation();
     document.getElementById('lang-dropdown').classList.toggle('open');
+    document.getElementById('lang-toggle').ariaExpanded = String(document.getElementById('lang-dropdown').classList.contains('open'));
 }
 
 function closeLangDropdown() {
     document.getElementById('lang-dropdown').classList.remove('open');
+    document.getElementById('lang-toggle').ariaExpanded = 'false';
 }
 
 // Close dropdown when clicking outside
 document.addEventListener('click', function(e) {
     if (!e.target.closest('.lang-switcher')) closeLangDropdown();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('lang-dropdown').classList.contains('open')) {
+        closeLangDropdown();
+        document.getElementById('lang-toggle').focus();
+    }
 });
 
 // ============================================================
@@ -1715,7 +2017,8 @@ function refreshConfiguration() {
     notice.textContent = error ? t(error) : '';
     document.getElementById('btn-run').disabled = !!error || isRunning;
     for (const id of ['copy-firewall', 'copy-script', 'download-script', 'download-script-txt',
-        'copy-path-script', 'download-path-script', 'download-path-script-txt']) document.getElementById(id).disabled = !!error;
+        'copy-path-script', 'download-path-script', 'download-path-script-txt',
+        'copy-script-command', 'copy-path-command']) document.getElementById(id).disabled = !!error;
     renderFirewallChecklist();
     renderScript();
 }
@@ -1724,12 +2027,15 @@ function toggleSection(id) {
     const el = document.getElementById(id);
     const isOpen = el.classList.contains('open');
     el.classList.toggle('open');
+    document.querySelectorAll(`[aria-controls="${id}"]`).forEach(button => { button.ariaExpanded = String(!isOpen); });
     if (!isOpen) {
         if (id === 'firewall-section') renderFirewallChecklist();
         if (id === 'cloud-agent-section') renderCloudAgentList();
         if (id === 'script-section') renderScript();
         if (id === 'ide-section') renderIdeGuide();
-        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+        setTimeout(() => el.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start'
+        }), 50);
     }
 }
 
@@ -1789,6 +2095,27 @@ async function checkEndpoint(url) {
     }
 }
 
+function resultIcon(status) {
+    const paths = {
+        pass: '<circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/>',
+        warn: '<path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4m0 3v.5"/>',
+        fail: '<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/>',
+        pending: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        copy: '<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
+        download: '<path d="M12 3v12m-4-4 4 4 4-4M4 16v4h16v-4"/>',
+    };
+    return `<svg class="result-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[status]}</svg>`;
+}
+
+function renderEndpointResult(row, result) {
+    const labelKey = { pass: 'results.reachable', warn: 'results.slow', fail: 'results.blocked', pending: 'results.checking' }[result.status];
+    const badge = row.querySelector('.State');
+    badge.className = `State State--${result.status}`;
+    badge.innerHTML = `${resultIcon(result.status)}<span data-i18n="${labelKey}">${t(labelKey)}</span>`;
+    row.querySelector('.endpoint-time').textContent = result.status === 'pending' ? '—'
+        : result.status === 'fail' ? result.error : `${result.time} ms`;
+}
+
 async function runCheck() {
     const options = getOptions();
     if (configurationError(options)) { refreshConfiguration(); return; }
@@ -1823,6 +2150,11 @@ async function runCheck() {
     document.getElementById('count-fail').textContent = '0';
     document.getElementById('count-pending').textContent = total;
     document.getElementById('progress-fill').style.width = '0%';
+    document.getElementById('results-run-state').textContent = t('results.running');
+    document.getElementById('results-progress-count').textContent = `0 / ${total}`;
+    const progress = document.getElementById('results-progress');
+    progress.ariaValueMax = String(total);
+    progress.ariaValueNow = '0';
     document.getElementById('export-bar').style.display = 'none';
 
     for (const group of groups) {
@@ -1839,8 +2171,12 @@ async function runCheck() {
                     <span class="endpoint-url">${ep.url}</span>
                     <span class="endpoint-purpose">${ep.purpose}</span>
                 </div>
-                <span class="State State--pending">${t('results.checking')}</span>
+                <div class="endpoint-observation">
+                    <span class="State State--pending"></span>
+                    <span class="endpoint-time"></span>
+                </div>
             `;
+            renderEndpointResult(row, { status: 'pending' });
             groupDiv.appendChild(row);
             rows.push({ row, ep });
         }
@@ -1848,19 +2184,13 @@ async function runCheck() {
 
         const promises = rows.map(async ({ row, ep }) => {
             const result = await checkEndpoint(ep.url);
-            const badge = row.querySelector('.State');
+            renderEndpointResult(row, result);
 
             if (result.status === 'pass') {
-                badge.className = 'State State--pass';
-                badge.textContent = `✓ ${result.time}ms`;
                 passCount++;
             } else if (result.status === 'warn') {
-                badge.className = 'State State--warn';
-                badge.textContent = `⚠ ${result.time}ms`;
                 warnCount++;
             } else {
-                badge.className = 'State State--fail';
-                badge.textContent = `✗ ${result.error}`;
                 failCount++;
             }
 
@@ -1871,12 +2201,15 @@ async function runCheck() {
             document.getElementById('count-fail').textContent = failCount;
             document.getElementById('count-pending').textContent = total - completed;
             document.getElementById('progress-fill').style.width = `${(completed / total) * 100}%`;
+            progress.ariaValueNow = String(completed);
+            document.getElementById('results-progress-count').textContent = `${completed} / ${total}`;
         });
         await Promise.all(promises);
     }
 
     document.getElementById('export-bar').style.display = 'flex';
     isRunning = false;
+    document.getElementById('results-run-state').textContent = t('results.finished');
     refreshConfiguration();
     btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path></svg> ' + t('dynamic.runCheck');
 }
@@ -1931,9 +2264,9 @@ function renderFirewallChecklist() {
     }
     const rules = getFirewallRules(plan, options);
     const tagMap = {
-        required: ['Required', 'IssueLabel--red'],
-        optional: ['Optional', 'IssueLabel--gray'],
-        routing: ['Routing', 'IssueLabel--yellow'],
+        required: [t('rule.required'), 'IssueLabel--blue'],
+        optional: [t('rule.optional'), 'IssueLabel--gray'],
+        routing: [t('rule.routing'), 'IssueLabel--yellow'],
         'routing-allow': [t('dynamic.allowLabel'), 'IssueLabel--green'],
         'routing-block': [t('dynamic.blockLabel'), 'IssueLabel--red'],
     };
@@ -2883,8 +3216,14 @@ function renderScript() {
     const shell = document.getElementById('path-shell').value;
     const extension = windows ? 'ps1' : shell === 'zsh' ? 'zsh' : 'sh';
     document.getElementById('path-shell-options').hidden = windows;
-    document.getElementById('basic-shell-help').hidden = currentScriptTab === 'powershell';
-    document.getElementById('basic-shell-command').textContent = `${currentScriptTab} ./copilot-network-check.${currentScriptTab === 'zsh' ? 'zsh' : 'sh'}`;
+    const shellNames = { bash: 'Bash', zsh: 'Zsh', powershell: 'PowerShell' };
+    const basicExtension = currentScriptTab === 'powershell' ? 'ps1' : currentScriptTab === 'zsh' ? 'zsh' : 'sh';
+    document.getElementById('basic-shell-command').textContent = currentScriptTab === 'powershell'
+        ? '.\\copilot-network-check.ps1' : `${currentScriptTab} ./copilot-network-check.${basicExtension}`;
+    document.getElementById('basic-download-label').textContent =
+        `${t('script.downloadFile').replace('{shell}', shellNames[currentScriptTab])} (.${basicExtension})`;
+    document.getElementById('path-download-label').textContent =
+        t('script.downloadFile').replace('{shell}', shellNames[windows ? 'powershell' : shell]);
     document.getElementById('path-clues').textContent = t(`path.clues.${os}`);
     document.getElementById('path-instructions').textContent = t(`path.instructions.${windows ? 'windows' : 'unix'}`);
     document.getElementById('path-command').textContent = windows ? '.\\copilot-path-check.ps1' : `${shell} ./copilot-path-check.${extension}`;
@@ -2904,8 +3243,10 @@ function renderScript() {
 
 function switchScriptTab(tab, el) {
     currentScriptTab = tab;
-    el.closest('.UnderlineNav').querySelectorAll('.UnderlineNav-item').forEach(t => t.classList.remove('selected'));
-    el.classList.add('selected');
+    el.closest('.UnderlineNav').querySelectorAll('.UnderlineNav-item').forEach(button => {
+        button.classList.toggle('selected', button === el);
+        button.ariaPressed = String(button === el);
+    });
     renderScript();
 }
 
@@ -2913,6 +3254,12 @@ function copyScript(button, tab = currentScriptTab) {
     if (configurationError(getOptions())) { refreshConfiguration(); return; }
     renderScript();
     return copyText(document.getElementById(tab === 'path' ? 'path-script-content' : 'script-content').textContent, button);
+}
+
+function copyScriptCommand(button, tab = currentScriptTab) {
+    if (configurationError(getOptions())) { refreshConfiguration(); return; }
+    renderScript();
+    return copyText(document.getElementById(tab === 'path' ? 'path-command' : 'basic-shell-command').textContent, button);
 }
 
 function downloadScript(asText = false, tab = currentScriptTab) {
@@ -3151,8 +3498,10 @@ function renderIdeGuide() {
 
 function switchIdeTab(tab, el) {
     currentIdeTab = tab;
-    el.closest('.UnderlineNav').querySelectorAll('.UnderlineNav-item').forEach(t => t.classList.remove('selected'));
-    el.classList.add('selected');
+    el.closest('.UnderlineNav').querySelectorAll('.UnderlineNav-item').forEach(button => {
+        button.classList.toggle('selected', button === el);
+        button.ariaPressed = String(button === el);
+    });
     renderIdeGuide();
 }
 
