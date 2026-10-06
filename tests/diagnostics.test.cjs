@@ -66,7 +66,7 @@ test('HTML IDs are unique and all translated UI keys exist in all languages', ()
     assert.equal(ids.length, new Set(ids).size);
     const a = app();
     const translations = a.json('TRANSLATIONS');
-    const keys = [...html.matchAll(/data-i18n(?:-html)?="([^"]+)"/g)].map(match => match[1]);
+    const keys = [...html.split('<script>')[0].matchAll(/data-i18n(?:-html)?="([^"]+)"/g)].map(match => match[1]);
     for (const language of ['en', 'ja', 'ko']) {
         assert.deepEqual(Object.keys(translations[language]).sort(), Object.keys(translations.en).sort());
         assert.ok(translations[language]['footer.verified'].includes(a.run('REVIEWED_AT')));
@@ -79,6 +79,42 @@ test('HTML IDs are unique and all translated UI keys exist in all languages', ()
                 assert.ok(a.nodes.get('ide-content').innerHTML.includes(translations[language][key]));
             }
         }
+    }
+});
+
+test('tool navigation, shell choices, and language controls expose their current state', () => {
+    const a = app();
+    const control = { ariaExpanded: 'false' };
+    a.context.document.querySelectorAll = selector => selector === '[aria-controls="script-section"]' ? [control] : [];
+    const scrolls = [];
+    a.nodes.get('script-section').scrollIntoView = options => scrolls.push(options);
+    a.context.setTimeout = callback => callback();
+    a.context.window.matchMedia = () => ({ matches: true });
+    a.run("toggleSection('script-section')");
+    assert.equal(control.ariaExpanded, 'true');
+    assert.equal(scrolls[0].behavior, 'auto');
+    a.run("toggleSection('script-section')");
+    assert.equal(control.ariaExpanded, 'false');
+    assert.equal(scrolls.length, 1);
+    for (const [fn, values] of [['switchScriptTab', ['bash', 'zsh', 'powershell']], ['switchIdeTab', ['vscode', 'cli']]]) {
+        const buttons = values.map(() => ({
+            classList: { toggle() {} },
+            closest: () => ({ querySelectorAll: () => buttons }),
+        }));
+        for (let i = 0; i < values.length; i++) {
+            a.context.button = buttons[i];
+            a.run(`${fn}('${values[i]}', button)`);
+            assert.deepEqual(buttons.map(button => button.ariaPressed), values.map((_, n) => String(n === i)));
+        }
+    }
+    a.run('toggleLangDropdown({ stopPropagation() {} })');
+    assert.equal(a.nodes.get('lang-toggle').ariaExpanded, 'true');
+    a.run('closeLangDropdown()');
+    assert.equal(a.nodes.get('lang-toggle').ariaExpanded, 'false');
+    for (const language of ['en', 'ja', 'ko']) {
+        a.run(`setLang('${language}')`);
+        assert.ok(a.nodes.get('lang-toggle').ariaLabel.includes(language.toUpperCase()));
+        assert.ok(a.nodes.get('firewall-checklist').innerHTML.includes(a.run("t('rule.required')")));
     }
 });
 
@@ -98,6 +134,60 @@ test('GitHub.com includes authentication assets and makes reports and voice opt-
     assert.ok(endpoints.some(ep => ep.url === 'https://copilot-reports.github.com'));
     assert.ok(endpoints.every(ep => !ep.url.includes('*')));
     assert.ok(!endpoints.some(ep => ep.url.includes('eastus')));
+});
+
+test('result rows show localized status text and separate timings without emoji badges', () => {
+    const a = app();
+    const badge = {};
+    const time = {};
+    a.context.row = { querySelector: selector => selector === '.State' ? badge : time };
+    for (const language of ['en', 'ja', 'ko']) {
+        a.run(`setLang('${language}')`);
+        for (const [status, key, expected] of [
+            ['pass', 'results.reachable', '128 ms'],
+            ['warn', 'results.slow', '128 ms'],
+            ['fail', 'results.blocked', 'Timeout'],
+            ['pending', 'results.checking', '—'],
+        ]) {
+            a.run(`renderEndpointResult(row, {status:'${status}', time:128, error:'Timeout'})`);
+            assert.equal(badge.className, `State State--${status}`);
+            assert.ok(badge.innerHTML.includes(a.run(`t('${key}')`)));
+            assert.match(badge.innerHTML, /<svg.*aria-hidden="true"/);
+            assert.doesNotMatch(badge.innerHTML, /✓|⚠|✗|128|undefined/);
+            assert.equal(time.textContent, expected);
+        }
+    }
+});
+
+test('browser result redesign preserves counts, progress, rerun reset and export data', async () => {
+    const a = app();
+    a.context.document.createElement = () => ({
+        innerHTML: '', className: '', children: [], badge: {}, time: {},
+        appendChild(child) { this.children.push(child); },
+        querySelector(selector) { return selector === '.State' ? this.badge : this.time; },
+    });
+    a.nodes.get('results-container').appendChild = () => {};
+    a.run(`getTestableGroups = () => [{name:'Fixture', endpoints:[
+        {url:'https://example.com/ok',purpose:'Completed'},
+        {url:'https://example.com/slow',purpose:'Delayed'},
+        {url:'https://example.com/fail',purpose:'Failed'}
+    ]}];
+    checkEndpoint = async url => url.endsWith('/ok') ? {status:'pass',time:50}
+        : url.endsWith('/slow') ? {status:'warn',time:3001} : {status:'fail',error:'Timeout'};`);
+    for (let run = 0; run < 2; run++) {
+        await a.run('runCheck()');
+        assert.equal(a.json('currentResults').length, 3);
+        for (const status of ['pass', 'warn', 'fail']) assert.equal(a.nodes.get(`count-${status}`).textContent, 1);
+        assert.equal(a.nodes.get('count-pending').textContent, 0);
+        assert.equal(a.nodes.get('results-progress').ariaValueNow, '3');
+        assert.equal(a.nodes.get('results-progress').ariaValueMax, '3');
+        assert.equal(a.nodes.get('results-progress-count').textContent, '3 / 3');
+        assert.equal(a.nodes.get('progress-fill').style.width, '100%');
+        assert.equal(a.nodes.get('results-run-state').textContent, a.run("t('results.finished')"));
+        assert.equal(a.nodes.get('btn-run').disabled, false);
+        assert.match(a.run('buildResultsText()'), /1 passed, 1 slow, 1 failed/);
+        assert.ok(a.json('currentResults').some(result => result.status === 'warn' && result.time === 3001));
+    }
 });
 
 test('apex GitHub domain stays client-scoped and Aspire stays cloud-agent-scoped', async () => {
@@ -437,6 +527,62 @@ test('collapsed OS-specific diagnostics use current scope, redacted targets, and
     assert.match(a.run('generateWindowsPathScript()'), /userPlan = 'enterprise'/);
 });
 
+test('download-first steps keep source collapsed and copy only the matching execution command', async () => {
+    const a = app();
+    a.context.navigator.clipboard.writeText = async text => { a.context.copied = text; };
+    a.run('globalThis.downloads = []; dl = (...args) => downloads.push(args); flash = (button, message) => { button.textContent = message; }');
+    for (const id of ['basic-script-source', 'path-script-source']) {
+        assert.doesNotMatch(html.match(new RegExp(`<details[^>]*id="${id}"[^>]*>`))[0], /\bopen\b/);
+    }
+    for (const language of ['en', 'ja', 'ko']) {
+        a.run(`setLang('${language}')`);
+        for (const [shell, extension, command] of [
+            ['bash', 'sh', 'bash ./copilot-network-check.sh'],
+            ['zsh', 'zsh', 'zsh ./copilot-network-check.zsh'],
+            ['powershell', 'ps1', '.\\copilot-network-check.ps1'],
+        ]) {
+            a.run(`currentScriptTab = '${shell}'; renderScript()`);
+            assert.equal(a.nodes.get('basic-shell-help').hidden, false);
+            assert.equal(a.nodes.get('basic-shell-command').textContent, command);
+            assert.ok(a.nodes.get('basic-download-label').textContent.endsWith(`(.${extension})`));
+            await a.run("copyScriptCommand(document.getElementById('copy-script-command'))");
+            assert.equal(a.context.copied, command);
+            assert.doesNotMatch(a.context.copied, /[\r\n]|#!/);
+            a.run('downloadScript()');
+            assert.equal(a.json('downloads.at(-1)')[0], `copilot-network-check.${extension}`);
+        }
+        for (const os of ['windows', 'linux', 'macos']) {
+            a.set('path-environment', os);
+            for (const shell of ['bash', 'zsh']) {
+                a.set('path-shell', shell);
+                await a.run("copyScriptCommand(document.getElementById('copy-path-command'), 'path')");
+                assert.equal(a.context.copied, os === 'windows' ? '.\\copilot-path-check.ps1'
+                    : `${shell} ./copilot-path-check.${shell === 'zsh' ? 'zsh' : 'sh'}`);
+                assert.doesNotMatch(a.context.copied, /[\r\n]|#!/);
+                assert.doesNotMatch(a.nodes.get('path-download-label').textContent, /undefined|\{shell\}/);
+            }
+        }
+    }
+    a.context.copied = null;
+    a.set('proxy-url', 'invalid');
+    a.run('refreshConfiguration()');
+    for (const [id, tab] of [['copy-script-command', 'bash'], ['copy-path-command', 'path']]) {
+        assert.equal(a.nodes.get(id).disabled, true);
+        await a.run(`copyScriptCommand(document.getElementById('${id}'), '${tab}')`);
+        assert.equal(a.context.copied, null);
+    }
+    a.set('proxy-url', '');
+    a.run('refreshConfiguration()');
+    assert.equal(a.nodes.get('copy-script-command').disabled, false);
+    assert.equal(a.nodes.get('copy-path-command').disabled, false);
+    a.context.navigator.clipboard.writeText = async () => { throw new Error('Permission denied'); };
+    const errors = [];
+    a.context.console = { ...console, error: (...args) => errors.push(args) };
+    await a.run("copyScriptCommand(document.getElementById('copy-script-command'))");
+    assert.equal(errors.length, 1);
+    assert.equal(a.nodes.get('copy-script-command').textContent, a.run("t('dynamic.copyFailed')"));
+});
+
 const pathMainMarker = 'if (!(Test-WindowsHost)) {';
 
 test('OS selection updates advanced content, instructions, copy, and download independently of basic tabs', async () => {
@@ -505,7 +651,8 @@ test('Zsh selection uses native scripts, matching file commands, and separate Wi
             assert.ok(a.json('downloads.slice(-2)').every(item => item[1] === content));
         }
         a.run("currentScriptTab = 'powershell'; renderScript()");
-        assert.equal(a.nodes.get('basic-shell-help').hidden, true);
+        assert.equal(a.nodes.get('basic-shell-help').hidden, false);
+        assert.equal(a.nodes.get('basic-shell-command').textContent, '.\\copilot-network-check.ps1');
         assert.equal(a.nodes.get('path-shell').value, 'zsh');
     }
 });
