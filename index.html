@@ -826,7 +826,7 @@
                 </select>
             </div>
             <div class="form-group visible" id="plan-input">
-                <label for="plan" data-i18n="firewall.plan">Plan:</label>
+                <label for="plan" id="plan-label" data-i18n="firewall.plan">User plan:</label>
                 <select class="form-control" id="plan">
                     <option value="free">Copilot Free</option>
                     <option value="student">Copilot Student</option>
@@ -836,7 +836,12 @@
                     <option value="business" selected>Copilot Business</option>
                     <option value="enterprise">Copilot Enterprise</option>
                 </select>
+                <select class="form-control" id="ghe-plan" aria-labelledby="plan-label" aria-describedby="ghe-plan-note" hidden>
+                    <option value="business" selected>Copilot Business</option>
+                    <option value="enterprise">Copilot Enterprise</option>
+                </select>
             </div>
+            <p id="ghe-plan-note" data-i18n="config.ghePlan" hidden>On GHE.com, the selected plan is recorded for context only and does not change the network allowlist. Subscription-based network routing is not supported.</p>
             <div class="form-group" id="ghe-input">
                 <label for="ghe-subdomain" data-i18n="firewall.gheSubdomain">GHE.com subdomain:</label>
                 <input class="form-control" type="text" id="ghe-subdomain" placeholder="company" maxlength="63">
@@ -849,9 +854,10 @@
                 </div>
                 <label class="form-checkbox"><input type="checkbox" id="opt-routing"> <span data-i18n="firewall.routing">Subscription-Based Routing</span></label>
                 <div id="routing-options" hidden>
+                    <label class="form-checkbox"><input type="checkbox" id="routing-individual"> <span data-i18n="config.individual">Individual — Free / Pro / Pro+ / Max</span></label>
                     <label class="form-checkbox"><input type="checkbox" id="routing-business" checked> Copilot Business</label>
                     <label class="form-checkbox"><input type="checkbox" id="routing-enterprise"> Copilot Enterprise</label>
-                    <p data-i18n="config.routing">Select the organization plans allowed on this network. Individual plans are blocked; this is independent of the user's plan above.</p>
+                    <p data-i18n="config.routing">Select the subscription groups allowed on this network. Selected groups are allowed; others are blocked. This is independent of the user's plan above.</p>
                 </div>
                 <label class="form-checkbox"><input type="checkbox" id="opt-reports"> <span data-i18n="config.reports">Usage report downloads</span></label>
             </div>
@@ -899,7 +905,7 @@
                 </div>
                 <p data-i18n="config.changed"></p>
                 <div class="counter-group">
-                    <div class="counter-item">✅ <span class="Counter" id="count-pass">0</span> <span data-i18n="results.reachable">Reachable</span></div>
+                    <div class="counter-item">✅ <span class="Counter" id="count-pass">0</span> <span data-i18n="results.reachable">Request completed</span></div>
                     <div class="counter-item">⚠️ <span class="Counter" id="count-warn">0</span> <span data-i18n="results.slow">Slow</span></div>
                     <div class="counter-item">❌ <span class="Counter" id="count-fail">0</span> <span data-i18n="results.blocked">Request failed</span></div>
                     <div class="counter-item">⏳ <span class="Counter" id="count-pending">0</span> <span data-i18n="results.pending">Pending</span></div>
@@ -936,7 +942,7 @@
                 <p style="margin:4px 0;font-size:12px;">
                     <strong>Important:</strong> Do NOT add <code>*.githubcopilot.com</code> to your allowlist when using routing — it bypasses all plan restrictions.
                     Below, <span class="IssueLabel IssueLabel--green" style="font-size:10px;">Allow ✅</span> = your selected plan,
-                    <span class="IssueLabel IssueLabel--red" style="font-size:10px;">Block 🚫</span> = plans to block or omit.
+                    <span class="IssueLabel IssueLabel--red" style="font-size:10px;">Block 🚫</span> = unselected subscription groups.
                 </p>
                 <p style="margin:4px 0 0;font-size:11px;color:var(--fgColor-muted);">
                     Min versions: VS Code Copilot Chat 0.17+ · JetBrains 1.5.6.5692+ · VS 2022 17.11+ ·
@@ -974,29 +980,100 @@
         <div class="Box">
             <div class="Box-header">
                 <h2>⚙️ <span data-i18n="script.title">Diagnostic Script</span></h2>
-                <div class="ActionBar">
-                    <button class="btn btn-sm" id="copy-script" onclick="copyScript(this)">📋 <span data-i18n="script.copy">Copy</span></button>
-                    <button class="btn btn-sm" id="download-script" onclick="downloadScript()">💾 <span data-i18n="script.download">Download</span></button>
-                </div>
             </div>
             <div class="Box-body">
-                <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
+                <div id="basic-script-options" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
                     <label class="form-checkbox"><input type="checkbox" id="opt-verbose" checked> <span data-i18n="script.verbose">Verbose (TLS)</span></label>
                     <label class="form-checkbox"><input type="checkbox" id="opt-dns"> <span data-i18n="script.dns">DNS resolution</span></label>
                     <label class="form-checkbox"><input type="checkbox" id="opt-cert"> <span data-i18n="script.cert">Certificate check</span></label>
-                    <label class="form-checkbox"><input type="checkbox" id="opt-proxy-script"> <span data-i18n="script.proxy">Proxy detection</span></label>
+                    <label class="form-checkbox"><input type="checkbox" id="opt-proxy-script"> <span data-i18n="script.proxy">Proxy environment variables</span></label>
                 </div>
                 <div class="form-group visible">
                     <label for="proxy-url" data-i18n="script.proxyUrl">Proxy URL:</label>
                     <input class="form-control" type="text" id="proxy-url" placeholder="http://proxy.corp.com:8080" style="width:280px;">
                 </div>
+                <p data-i18n="path.browserLimit">The proxy URL applies to scripts only. It does not change your browser's proxy or VPN route.</p>
             </div>
             <div class="UnderlineNav">
                 <button class="UnderlineNav-item selected" onclick="switchScriptTab('bash', this)">Bash</button>
+                <button class="UnderlineNav-item" onclick="switchScriptTab('zsh', this)">Zsh</button>
                 <button class="UnderlineNav-item" onclick="switchScriptTab('powershell', this)">PowerShell</button>
+            </div>
+            <div class="Box-body" id="basic-shell-help">
+                <p data-i18n="script.shellHelp">Download the script or paste the copied content into a text editor and save it as a file. Do not paste the entire script into a terminal: zsh may report “event not found” for the #! line. Open a terminal in the saved file's folder and run the command below.</p>
+                <code id="basic-shell-command">bash ./copilot-network-check.sh</code>
+            </div>
+            <div class="Box-body" style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-sm" id="copy-script" onclick="copyScript(this)">📋 <span data-i18n="script.copy">Copy script</span></button>
+                <button class="btn btn-sm" id="download-script-txt" onclick="downloadScript(true)">💾 <span data-i18n="script.downloadTxt">Download .txt</span></button>
+                <button class="btn btn-sm" id="download-script" onclick="downloadScript()">💾 <span data-i18n="script.download">Download script (.sh / .zsh / .ps1)</span></button>
             </div>
             <div class="code-block" id="script-content"></div>
         </div>
+        <details class="Box" id="advanced-diagnostics">
+            <summary style="padding:16px;cursor:pointer;font-weight:600;" data-i18n="advanced.title">Advanced diagnostics by OS (optional)</summary>
+            <div class="Box-body" id="path-options">
+                <p data-i18n="advanced.intro">Start with the basic script above. Use OS-specific checks only when you need more evidence about a network path. These checks do not verify Copilot sign-in or feature availability.</p>
+                <h3 data-i18n="path.title">Proxy path comparison</h3>
+                <p data-i18n="path.intro">This separate script reads configuration clues and tests the same endpoints using curl. It does not change system, IDE, or VPN settings, execute PAC files, or sign in to Copilot. It uses the Proxy URL above, but not the basic script checkboxes.</p>
+                <div class="form-group visible">
+                    <label for="path-environment" data-i18n="path.environment">Operating system:</label>
+                    <select class="form-control" id="path-environment">
+                        <option value="windows">Windows</option>
+                        <option value="linux">Linux</option>
+                        <option value="macos">macOS</option>
+                    </select>
+                </div>
+                <div class="form-group visible" id="path-shell-options" hidden>
+                    <label for="path-shell" data-i18n="path.shell">Script shell:</label>
+                    <select class="form-control" id="path-shell">
+                        <option value="bash">Bash</option>
+                        <option value="zsh">Zsh</option>
+                    </select>
+                </div>
+                <div class="form-group visible">
+                    <label for="path-vpn" data-i18n="path.vpn">VPN state when you run the script (self-reported):</label>
+                    <select class="form-control" id="path-vpn">
+                        <option value="unknown" data-i18n="path.unknown">Unknown</option>
+                        <option value="on" data-i18n="path.on">VPN connected</option>
+                        <option value="off" data-i18n="path.off">VPN disconnected</option>
+                    </select>
+                </div>
+                <label class="form-checkbox"><input type="checkbox" id="path-direct"> <span data-i18n="path.direct">Also test direct connections — only if company policy permits</span></label>
+                <div class="flash flash-info" style="margin-top:12px;">
+                    <strong data-i18n="path.routes">Paths to compare</strong>
+                    <ol style="padding-left:20px;">
+                        <li data-i18n="path.default">Current curl configuration: uses proxy environment variables, not OS proxy or PAC settings. It may differ from the IDE's route and is not necessarily a direct connection.</li>
+                        <li data-i18n="path.explicit">IT-designated proxy: uses the Proxy URL above and disables NO_PROXY bypass for this request only. Authentication is not attempted automatically.</li>
+                        <li id="path-direct-note" hidden data-i18n="path.directNote">Direct: explicitly bypasses application proxies, but cannot bypass or disable VPNs, transparent proxies, or corporate network controls.</li>
+                    </ol>
+                </div>
+                <p id="path-proxy-notice" class="flash flash-warn" role="status" data-i18n="path.missingProxy">No designated proxy URL entered. Only the environment-default path is generated; this is not a proxy comparison.</p>
+                <p id="path-clues"></p>
+                <details style="margin-top:12px;">
+                    <summary data-i18n="path.interpret">How to interpret results</summary>
+                    <ul style="padding-left:20px;">
+                        <li data-i18n="path.compare">Default fails + designated proxy gets the expected health response: compare Copilot's explicit proxy settings. This does not prove PAC caused the failure.</li>
+                        <li data-i18n="path.auth">CONNECT/HTTP 407: ask IT about proxy authentication. TLS errors: check the approved corporate CA and client trust store. Do not disable certificate verification.</li>
+                        <li data-i18n="path.health">HTTP 200 on a health probe checks only that request. A CONNECT 200 alone is not an endpoint HTTP 200. Login, policy, response content, and other features remain unverified.</li>
+                    </ul>
+                </details>
+                <h3 style="margin-top:16px;" data-i18n="path.run">Run and share</h3>
+                <p id="path-instructions"></p>
+                <p data-i18n="path.location">Run inside the environment where the client fails. For a VM, WSL, container, or remote session, select its OS, not the host OS. Follow your organization's execution policy.</p>
+                <code id="path-command">.\copilot-path-check.ps1</code>
+                <p data-i18n="path.output">Saves a report with a unique filename, copilot-path-check-*.json, in the current directory and prints a summary. Stages that could not be observed are marked unknown. After saving the report, the script exits with code 1 for failed or unrun checks, or code 2 for warnings or incomplete configuration collection.</p>
+                <p class="flash flash-warn" data-i18n="path.privacy">The downloaded script contains your entered proxy and tenant addresses: keep it local. The JSON omits proxy/PAC URLs, credentials, response bodies, raw errors, and private tenant/enterprise identifiers. Review the JSON before sharing; no report is uploaded by this page.</p>
+                <p data-i18n="path.followup">After an approved configuration change, restart the affected client and retry the originally failing login or Chat operation. Collect IDE diagnostics if it still fails. This script cannot certify Copilot recovery or diagnose VPN split tunneling.</p>
+                <p><a href="https://docs.github.com/en/copilot/how-tos/troubleshoot-copilot/troubleshoot-network-errors" target="_blank" data-i18n="footer.network">Network settings</a> · <a href="https://curl.se/docs/manpage.html" target="_blank">curl reference</a></p>
+            </div>
+            <div class="Box-body" style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-sm" id="copy-path-script" onclick="copyScript(this, 'path')">📋 <span data-i18n="script.copy">Copy script</span></button>
+                <button class="btn btn-sm" id="download-path-script-txt" onclick="downloadScript(true, 'path')">💾 <span data-i18n="script.downloadTxt">Download .txt</span></button>
+                <button class="btn btn-sm" id="download-path-script" onclick="downloadScript(false, 'path')">💾 <span data-i18n="path.download">Download script</span> <span id="path-extension">(.ps1)</span></button>
+            </div>
+            <div class="code-block" id="path-script-content"></div>
+        </details>
     </div>
 
     <!-- ===== IDE Diagnostics ===== -->
@@ -1023,7 +1100,7 @@
             · <a href="https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-for-enterprise/manage-access/manage-network-access" target="_blank" data-i18n="footer.routing">Subscription Routing</a>
         </div>
         <div data-i18n="footer.built">Built for GitHub Support</div>
-        <div data-i18n="footer.verified">Documentation reviewed: 2026-10-02. Rules are a snapshot, not a live service inventory.</div>
+        <div data-i18n="footer.verified">Documentation reviewed: 2026-10-06. Rules are a snapshot, not a live service inventory.</div>
     </div>
 </div>
 
@@ -1037,7 +1114,7 @@ const TRANSLATIONS = {
         'header.networkCheck': 'Network Check',
         'page.title': 'Copilot Network Connectivity Check',
         'page.subtitle': 'Verify required network endpoints and generate firewall allowlist rules for GitHub Copilot',
-        'quickCheck.title': 'Quick Check',
+        'quickCheck.title': 'Browser pre-check',
         'quickCheck.run': 'Run Check',
         'quickCheck.desc': 'Checks representative endpoints for the selected environment, not every wildcard host or Copilot authentication.',
         'quickCheck.firewall': 'Firewall Checklist',
@@ -1048,35 +1125,74 @@ const TRANSLATIONS = {
         'results.copyText': 'Copy Text',
         'results.json': 'JSON',
         'results.info': 'ℹ️ <code>fetch(no-cors)</code> cannot inspect HTTP status or content. A ✓ only means the browser request completed, not that Copilot is healthy. Failures may be caused by DNS, TLS, browser restrictions, extensions, or a firewall. Use the script to check HTTP status.',
-        'results.reachable': 'Reachable',
+        'results.reachable': 'Request completed',
         'results.slow': 'Slow',
         'results.blocked': 'Request failed',
         'results.pending': 'Pending',
-        'results.checking': 'checking...',
+        'results.checking': 'Checking...',
         'firewall.title': 'Firewall / Proxy Allowlist',
         'firewall.copyRules': 'Copy Rules',
-        'firewall.info': 'These are <strong>pattern-based rules</strong> for your firewall or proxy server. Wildcard domains use dynamic subdomains that cannot be tested directly. Share this list with your IT/security team.',
-        'firewall.plan': 'Plan:',
+        'firewall.info': 'These are <strong>pattern-based rules</strong> for your firewall or proxy server. Wildcard patterns cannot be tested as literal hostnames. Share this list with your IT or security team; this tool does not apply the rules.',
+        'firewall.plan': 'User plan:',
+        'config.ghePlan': 'On GHE.com, the selected plan is recorded for context only and does not change the network allowlist. Subscription-based network routing is not supported.',
         'firewall.ghecom': 'GHE.com (Data Residency)',
         'firewall.emu': 'Enterprise Managed Users',
         'firewall.routing': 'Subscription-Based Routing',
         'firewall.gheSubdomain': 'GHE.com subdomain:',
-        'firewall.emuSlug': 'Enterprise slug:',
-        'routing.info': '<strong>Subscription-based routing</strong><p>Allow Business, Enterprise, or both. Block <code>*.individual.githubcopilot.com</code> for Free / Pro / Pro+ / Max. Student mapping is not specified in the routing docs.</p><p>Do not allow <code>*.githubcopilot.com</code>: it bypasses plan restrictions. The generic Chat ping is omitted in this mode; browser/script success does not validate plan-specific wildcard coverage. Use client diagnostics.</p><p>Use current clients. Minimum routing versions: VS Code Copilot Chat 0.17+, JetBrains 1.5.6.5692+, VS 2022 17.11+. <a href="https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-for-enterprise/manage-access/manage-network-access" target="_blank">Official routing documentation</a></p>',
+        'firewall.emuSlug': 'Enterprise slug (URL identifier):',
+        'routing.info': '<strong>Subscription-based routing</strong><p>Choose any combination of Individual, Business, and Enterprise. Individual uses <code>*.individual.githubcopilot.com</code> for Free / Pro / Pro+ / Max; these plans cannot be separated by network rules. Student mapping is not specified in the routing docs.</p><p>Do not allow <code>*.githubcopilot.com</code>: it bypasses group restrictions. The generic Chat ping is omitted in this mode; browser/script success does not validate group-specific wildcard coverage. Use client diagnostics. Turn routing off if no subscription restrictions are needed.</p><p>Use current clients. Minimum routing versions: VS Code Copilot Chat 0.17+, JetBrains 1.5.6.5692+, VS 2022 17.11+. <a href="https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-for-enterprise/manage-access/manage-network-access" target="_blank">Official routing documentation</a></p>',
         'cloudAgent.title': 'Cloud agent / code review internet access',
         'cloudAgent.copyRules': 'Copy Rules',
-        'cloudAgent.info': '<p>Configure cloud agent and code review independently in organization or repository <strong>Settings → Copilot → Internet access</strong>. Organization rules are combined with permitted repository rules. The list below is the documented cloud agent recommended allowlist, enabled by default; it is not a workstation firewall list or a separately verified code review inventory.</p><p>The agent firewall only applies to agent Bash processes inside the Actions appliance, not directly to MCP server processes or setup steps. Domains include subdomains; URL rules restrict scheme, host, and path. <a href="https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall" target="_blank">Firewall documentation and limitations</a></p>',
+        'cloudAgent.info': '<p>Configure cloud agent and code review separately under <strong>Settings → Copilot → Internet access</strong> in your organization or repository. Organization rules are combined with permitted repository rules. The list below is the documented, default-enabled cloud agent allowlist. It is not a workstation firewall list or a separately verified list of code review requirements.</p><p>The agent firewall applies only to agent Bash processes inside the Actions environment, not directly to MCP server processes or setup steps. Domain rules include subdomains; URL rules specify the scheme, host, and path. <a href="https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall" target="_blank">Firewall documentation and limitations</a></p>',
         'cloudAgent.expandAll': 'Expand All',
         'cloudAgent.collapseAll': 'Collapse All',
         'script.title': 'Diagnostic Script',
-        'script.copy': 'Copy',
-        'script.download': 'Download',
+        'script.copy': 'Copy script',
+        'script.download': 'Download script (.sh / .zsh / .ps1)',
+        'script.downloadTxt': 'Download .txt',
+        'script.shellHelp': 'Download the script or paste the copied content into a text editor and save it as a file. Do not paste the entire script into a terminal: zsh may report “event not found” for the #! line. Open a terminal in the saved file’s folder and run the command below.',
         'script.verbose': 'Timing / TLS verification details',
         'script.dns': 'DNS resolution',
         'script.cert': 'Certificate trust notes / CA file checks',
-        'script.proxy': 'Proxy detection',
+        'script.proxy': 'Proxy environment variables',
         'script.proxyUrl': 'Proxy URL:',
+        'path.browserLimit': 'The proxy URL applies to scripts only. It does not change your browser’s proxy or VPN route.',
+        'advanced.title': 'Advanced diagnostics by OS (optional)',
+        'advanced.intro': 'Start with the basic script above. Use OS-specific checks only when you need more evidence about a network path. These checks do not verify Copilot sign-in or feature availability.',
+        'path.download': 'Download script',
+        'path.title': 'Proxy path comparison',
+        'path.intro': 'This separate script reads configuration clues and tests the same endpoints using curl. It does not change system, IDE, or VPN settings, execute PAC files, or sign in to Copilot. It uses the Proxy URL above, but not the basic script checkboxes.',
+        'path.environment': 'Operating system:',
+        'path.shell': 'Script shell:',
+        'path.vpn': 'VPN state when you run the script (self-reported):',
+        'path.unknown': 'Unknown',
+        'path.on': 'VPN connected',
+        'path.off': 'VPN disconnected',
+        'path.direct': 'Also test direct connections — only if company policy permits',
+        'path.routes': 'Paths to compare',
+        'path.default': 'Current curl configuration: uses proxy environment variables, not OS proxy or PAC settings. It may differ from the IDE’s route and is not necessarily a direct connection.',
+        'path.explicit': 'IT-designated proxy: uses the Proxy URL above, even for targets listed in NO_PROXY. This override applies only to the test request. Proxy authentication is not attempted automatically.',
+        'path.directNote': 'Direct: explicitly bypasses application proxies, but cannot bypass or disable VPNs, transparent proxies, or corporate network controls.',
+        'path.missingProxy': 'No designated proxy URL entered. Only the environment-default path and any explicitly authorized direct test are generated; this is not a designated-proxy comparison.',
+        'path.clues.windows': 'Windows: collects current-user PAC and manual proxy settings, plus whether proxy and CA environment variables are set. Missing settings are marked unknown. WinHTTP, managed policies, IDE configuration, and VPN routing are not verified.',
+        'path.clues.linux': 'Linux: checks whether proxy and CA environment variables are set. Desktop-specific proxy and PAC settings are not collected; GNOME, KDE, services, and the IDE may use different settings. VPN routing is not verified.',
+        'path.clues.macos': 'macOS: collects proxy and PAC enable flags from scutil and checks whether proxy and CA environment variables are set. Addresses are omitted, and missing flags are marked unknown. These system settings do not prove which route curl or the IDE uses. VPN routing is not verified.',
+        'path.interpret': 'How to interpret results',
+        'path.compare': 'If the current curl configuration fails but the designated proxy returns the expected health-check response, compare the proxy settings used by Copilot. This does not prove that PAC caused the failure.',
+        'path.auth': 'CONNECT/HTTP 407: ask IT about proxy authentication. TLS errors: check the approved corporate CA and client trust store. Do not disable certificate verification.',
+        'path.health': 'HTTP 200 on a health probe checks only that request. A CONNECT 200 alone is not an endpoint HTTP 200. Login, policy, response content, and other features remain unverified.',
+        'path.run': 'Run and share',
+        'path.instructions.windows': 'Download and review the .ps1, then run it in PowerShell on Windows with curl.exe installed. Do not bypass script execution policy.',
+        'path.instructions.unix': 'Download and review the .sh (Bash) or .zsh (Zsh) file. Copy copies file contents, not a terminal command; save it in a text editor rather than pasting it into zsh, which may report “event not found” for #!. In the saved file’s folder, run the command below. Requires the selected shell (Bash 3.2+ or Zsh 5+) and curl; no Python or jq required.',
+        'path.location': 'Run inside the environment where the client fails. For a VM, WSL, container, or remote session, select its OS, not the host OS. Follow your organization’s execution policy.',
+        'path.output': 'Saves a report with a unique filename, copilot-path-check-*.json, in the current directory and prints a summary. Stages that could not be observed are marked unknown. After saving the report, the script exits with code 1 for failed or unrun checks, or code 2 for warnings or incomplete configuration collection.',
+        'path.privacy': 'The downloaded script contains your entered proxy and tenant addresses: keep it local. The JSON omits proxy/PAC URLs, credentials, response bodies, raw errors, and private tenant/enterprise identifiers. Review the JSON before sharing; no report is uploaded by this page.',
+        'path.followup': 'After an approved configuration change, restart the affected client and retry the originally failing login or Chat operation. Collect IDE diagnostics if it still fails. This script cannot certify Copilot recovery or diagnose VPN split tunneling.',
         'ide.title': 'IDE Network Diagnostics',
+        'ide.docsLogs': 'GitHub Docs: logs',
+        'ide.docsNetwork': 'GitHub Docs: proxy and certificates',
+        'ide.docsAuth': 'GitHub Docs: CLI authentication',
+        'ide.docsVoice': 'GitHub Docs: voice features',
         'footer.allowlist': 'Allowlist Reference',
         'footer.network': 'Network Settings',
         'footer.routing': 'Subscription Routing',
@@ -1092,67 +1208,107 @@ const TRANSLATIONS = {
         'config.title': 'Environment and features',
         'config.scope': 'These settings apply to the allowlist, browser checks, and generated scripts.',
         'config.deployment': 'Deployment:',
-        'config.routing': 'Select the organization plans allowed on this network. Individual plans are blocked; this is independent of the user plan above.',
+        'config.individual': 'Individual — Free / Pro / Pro+ / Max',
+        'config.routing': 'Select the subscription groups to allow on this network. The generated rules allow selected groups and block the others; the rules are not applied automatically. This is independent of the user plan above. Individual plans share one routing group, so Pro cannot be allowed separately from Free / Pro+ / Max.',
         'config.reports': 'Usage report downloads',
         'config.publicCode': 'Public code detection',
         'config.voice': 'CLI / Copilot app voice model downloads',
         'config.limit': 'Wildcard rules cannot be fully tested. Run scripts in the affected client environment. GHE.com uses tenant services, not GitHub.com routing. Student routing is not specified in the routing documentation.',
         'config.slugError': 'Enter a valid GHE.com subdomain (1–63 letters, digits, or internal hyphens).',
         'config.emuError': 'Enter a valid enterprise slug for managed-user authentication.',
-        'config.routingError': 'Select at least one allowed organization plan.',
-        'config.proxyError': 'Use an http:// proxy URL without credentials, query, or fragment. Configure credentials securely on the client, not in exported scripts.',
+        'config.routingError': 'Select at least one allowed subscription group.',
+        'config.proxyError': 'Enter an http:// proxy URL with only a hostname and optional port, such as http://proxy.example.com:8080. Do not include credentials, a path, a query string, or a fragment. Configure credentials securely on the client.',
         'config.changed': 'Results reflect the settings when the check started. Run again after changing settings. Browser and client proxy/certificate settings may differ.',
-        'footer.verified': 'Documentation reviewed: 2026-10-02. Rules are a snapshot, not a live service inventory.'
+        'footer.verified': 'Documentation reviewed: 2026-10-06. Rules are a snapshot, not a live service inventory.'
     },
     ja: {
         'header.copilot': 'Copilot',
         'header.networkCheck': 'ネットワーク診断',
         'page.title': 'Copilot ネットワーク接続チェック',
         'page.subtitle': 'GitHub Copilotに必要なネットワークエンドポイントを確認し、ファイアウォール許可リストを生成します',
-        'quickCheck.title': 'クイックチェック',
+        'quickCheck.title': 'ブラウザでの事前確認',
         'quickCheck.run': 'チェック実行',
         'quickCheck.desc': '選択した環境の代表的なエンドポイントを確認します。すべてのワイルドカードホストや認証は検証しません。',
         'quickCheck.firewall': 'ファイアウォールチェックリスト',
-        'quickCheck.cloudAgent': 'Cloud Agent',
+        'quickCheck.cloudAgent': 'クラウドエージェント',
         'quickCheck.script': 'スクリプト生成',
         'quickCheck.ide': 'IDE診断',
         'results.title': '結果',
         'results.copyText': 'テキストをコピー',
         'results.json': 'JSON',
         'results.info': 'ℹ️ <code>fetch(no-cors)</code>ではHTTPステータスや内容を確認できません。✓はリクエストの完了を示し、Copilotの正常動作を保証しません。失敗の原因にはDNS、TLS、ブラウザの制限、拡張機能、ファイアウォールがあります。HTTPステータスはスクリプトで確認してください。',
-        'results.reachable': '到達可能',
-        'results.slow': '低速',
+        'results.reachable': 'リクエスト完了',
+        'results.slow': '応答に遅延',
         'results.blocked': 'リクエスト失敗',
         'results.pending': '待機中',
         'results.checking': 'チェック中...',
         'firewall.title': 'ファイアウォール / プロキシ許可リスト',
         'firewall.copyRules': 'ルールをコピー',
-        'firewall.info': 'これはファイアウォールまたはプロキシサーバー用の<strong>パターンベースのルール</strong>です。ワイルドカードドメインは直接テストできない動的サブドメインを使用します。このリストをIT/セキュリティチームに共有してください。',
-        'firewall.plan': 'プラン:',
+        'firewall.info': 'ファイアウォールまたはプロキシサーバーに設定する<strong>パターンベースのルール</strong>です。ワイルドカードを含むパターンは、そのまま接続先としてテストできません。IT部門やセキュリティチームにこのリストを共有してください。このツールがルールを適用することはありません。',
+        'firewall.plan': 'ユーザーのプラン:',
+        'config.ghePlan': 'GHE.comでは、選択したプランは参考情報として記録され、ネットワーク許可リストには影響しません。サブスクリプションベースのネットワークルーティングは非対応です。',
         'firewall.ghecom': 'GHE.com (データレジデンシー)',
         'firewall.emu': 'Enterprise Managed Users',
-        'firewall.routing': 'サブスクリプションベースルーティング',
+        'firewall.routing': 'サブスクリプションベースのルーティング',
         'firewall.gheSubdomain': 'GHE.comサブドメイン:',
-        'firewall.emuSlug': 'Enterpriseスラッグ:',
-        'routing.info': '<strong>サブスクリプションベースルーティング</strong><p>Business、Enterprise、または両方を許可します。Free / Pro / Pro+ / Maxを制限するには<code>*.individual.githubcopilot.com</code>をブロックします。Studentの対応は公式資料に明記されていません。</p><p><code>*.githubcopilot.com</code>の許可はプラン制限を無効にします。このモードでは汎用Chat pingを省略します。プラン別の接続はクライアント診断で確認してください。</p><p>最新版を推奨します。最小バージョン: VS Code Copilot Chat 0.17+、JetBrains 1.5.6.5692+、VS 2022 17.11+。<a href="https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-for-enterprise/manage-access/manage-network-access" target="_blank">公式資料</a></p>',
-        'cloudAgent.title': 'Cloud agent / code reviewのインターネットアクセス',
+        'firewall.emuSlug': 'Enterpriseのスラッグ（URL内の識別子）:',
+        'routing.info': '<strong>サブスクリプションベースルーティング</strong><p>個人用、Business、Enterpriseを自由に組み合わせて許可できます。Free / Pro / Pro+ / Maxは<code>*.individual.githubcopilot.com</code>を共有するため、ネットワークルールでは分離できません。Studentの対応は公式資料に明記されていません。</p><p><code>*.githubcopilot.com</code>の許可はグループ制限を無効にします。このモードでは汎用Chat pingを省略します。グループ別の接続はクライアント診断で確認してください。制限不要の場合はルーティングを無効にしてください。</p><p>最新版を推奨します。最小バージョン: VS Code Copilot Chat 0.17+、JetBrains 1.5.6.5692+、VS 2022 17.11+。<a href="https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-for-enterprise/manage-access/manage-network-access" target="_blank">公式資料</a></p>',
+        'cloudAgent.title': 'クラウドエージェント / コードレビューのインターネットアクセス',
         'cloudAgent.copyRules': 'ルールをコピー',
-        'cloudAgent.info': '<p>組織またはリポジトリの<strong>Settings → Copilot → Internet access</strong>でcloud agentとcode reviewを個別に設定します。組織ルールと許可されたリポジトリルールは合算されます。以下は既定で有効なcloud agentの推奨リストであり、PC用ルールやcode review専用の検証済みリストではありません。</p><p>エージェントのファイアウォールはActions環境内のBashプロセスに適用されます。MCPサーバーやsetup stepsには直接適用されません。ドメインルールはサブドメインを含み、URLルールはスキーム・ホスト・パスを制限します。<a href="https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall" target="_blank">公式資料と制限事項</a></p>',
+        'cloudAgent.info': '<p>組織またはリポジトリの<strong>Settings → Copilot → Internet access</strong>で、クラウドエージェントとコードレビューを個別に設定します。組織のルールと、許可されたリポジトリのルールが組み合わせて適用されます。以下は公式ドキュメントに記載された、既定で有効なクラウドエージェントの推奨許可リストです。利用者のPC向けのルールや、コードレビュー専用に検証したリストではありません。</p><p>エージェントのファイアウォールは、Actions環境内でエージェントが実行するBashプロセスにのみ適用されます。MCPサーバーのプロセスやセットアップ手順には直接適用されません。ドメインのルールはサブドメインも含み、URLのルールはスキーム・ホスト・パスを指定します。<a href="https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall" target="_blank">公式ドキュメントと制限事項</a></p>',
         'cloudAgent.expandAll': 'すべて展開',
         'cloudAgent.collapseAll': 'すべて折りたたむ',
         'script.title': '診断スクリプト',
-        'script.copy': 'コピー',
-        'script.download': 'ダウンロード',
+        'script.copy': 'スクリプトをコピー',
+        'script.download': 'スクリプトを保存 (.sh / .zsh / .ps1)',
+        'script.downloadTxt': '.txtを保存',
+        'script.shellHelp': 'スクリプトをダウンロードするか、コピーした内容をテキストエディターに貼り付けてファイルに保存してください。スクリプト全体をターミナルに貼り付けると、zshが#!の行で「event not found」エラーを表示する場合があります。保存先のフォルダーをターミナルで開き、下のコマンドを実行してください。',
         'script.verbose': '所要時間 / TLS検証の詳細',
-        'script.dns': 'DNS解決',
+        'script.dns': 'DNS名前解決',
         'script.cert': '証明書の信頼設定 / CAファイル確認',
-        'script.proxy': 'プロキシ検出',
+        'script.proxy': 'プロキシ環境変数の確認',
         'script.proxyUrl': 'プロキシURL:',
+        'path.browserLimit': 'プロキシURLはスクリプトにのみ適用されます。ブラウザのプロキシやVPN経路は変更されません。',
+        'advanced.title': 'OS別の詳細診断（任意）',
+        'advanced.intro': 'まず上の基本スクリプトを使用してください。ネットワーク経路について追加の情報が必要な場合に、OS別の検査を使用します。Copilotへのログインや機能の利用可否を確認するものではありません。',
+        'path.download': 'スクリプトを保存',
+        'path.title': 'プロキシ経路の比較',
+        'path.intro': 'このスクリプトでは設定情報を収集し、curlで同じ接続先を経路別に確認します。システム・IDE・VPN設定の変更、PACファイルの実行、Copilotへのログインは行いません。上のプロキシURLを使用しますが、基本スクリプトのチェックボックスの設定は適用されません。',
+        'path.environment': 'オペレーティングシステム:',
+        'path.shell': '実行するシェル:',
+        'path.vpn': '実行時のVPN接続状態（手動で選択）:',
+        'path.unknown': '不明',
+        'path.on': 'VPN接続中',
+        'path.off': 'VPN未接続',
+        'path.direct': '直接接続も検査する — 社内ポリシーで許可された場合のみ',
+        'path.routes': '比較する経路',
+        'path.default': 'curlの現在の設定: OSのプロキシ・PAC設定ではなく、プロキシ環境変数を使用します。IDEと同じ経路とは限らず、直接接続とも限りません。',
+        'path.explicit': 'IT部門が指定したプロキシ: 上のURLを使用します。NO_PROXYに登録された接続先も、この検査リクエストでは指定プロキシを経由します。プロキシ認証は自動では試行しません。',
+        'path.directNote': '直接接続: curlでプロキシを使用しない接続を試します。VPN・透過プロキシ・社内のネットワーク制御を回避したり、無効にしたりするものではありません。',
+        'path.missingProxy': '指定プロキシのURLが入力されていません。curlの現在の設定と、選択した場合は直接接続のみを検査します。指定プロキシとの比較は行いません。',
+        'path.clues.windows': 'Windows: 現在のユーザーのPAC・手動プロキシの設定情報と、プロキシ・CA環境変数の設定状況を収集します。取得できなかった設定値は不明として記録します。WinHTTP、管理ポリシー、IDE設定、VPN経路は検証しません。',
+        'path.clues.linux': 'Linux: プロキシ・CA環境変数の有無を収集します。デスクトップ固有のプロキシ・PAC設定は収集しません。GNOME、KDE、サービス、IDEは異なる設定を使用する場合があります。VPN経路は検証しません。',
+        'path.clues.macos': 'macOS: scutilでプロキシ・PACが有効かどうかを示すフラグを確認し、プロキシ・CA環境変数の設定状況とともに収集します。アドレスは含めず、取得できなかったフラグは不明として記録します。システム設定だけではcurlやIDEが使う経路を特定できません。VPN経路は検証しません。',
+        'path.interpret': '結果の読み方',
+        'path.compare': 'curlの現在の設定では失敗し、指定プロキシでは期待するヘルスチェック応答が得られた場合は、Copilotが使用するプロキシ設定と比較してください。これだけでPACが原因とは断定できません。',
+        'path.auth': 'CONNECTまたはHTTPのステータスが407の場合は、IT部門にプロキシ認証の設定を確認してください。TLSエラーの場合は、承認済みの社内CA証明書とクライアントの信頼ストアを確認してください。証明書の検証は無効にしないでください。',
+        'path.health': 'ヘルスチェック用エンドポイントのHTTP 200は、そのリクエストに応答があったことだけを示します。CONNECT 200は、最終的なHTTP応答が200であることを意味しません。ログイン・ポリシー・応答内容・他の機能は確認していません。',
+        'path.run': '実行と共有',
+        'path.instructions.windows': '.ps1ファイルをダウンロードして内容を確認し、curl.exeがインストールされたWindowsのPowerShellで実行してください。スクリプトの実行ポリシーは回避しないでください。',
+        'path.instructions.unix': '.sh（Bash）または.zsh（Zsh）ファイルをダウンロードして内容を確認してください。コピーボタンはファイルの内容をコピーします。zshに直接貼り付けると#!の行で「event not found」エラーが出る場合があるため、テキストエディターで保存してください。保存先のフォルダーで下のコマンドを実行します。選択したシェル（Bash 3.2以降またはZsh 5以降）とcurlが必要です。Pythonやjqは不要です。',
+        'path.location': '問題が発生する環境の中で実行してください。VM・WSL・コンテナー・リモートセッションでは、ホストではなく、その環境のOSを選択してください。社内の実行ポリシーに従ってください。',
+        'path.output': '現在のフォルダーに、重複しないファイル名でcopilot-path-check-*.jsonを保存し、概要を表示します。確認できなかった段階は不明として記録します。レポート保存後、検査の失敗・未実行は終了コード1、警告・設定情報の収集不足は終了コード2を返します。',
+        'path.privacy': 'ダウンロードしたスクリプトには入力したプロキシ・テナントのアドレスが含まれるため、ローカルで管理してください。JSONにはプロキシ・PAC URL、認証情報、応答本文、生のエラー、非公開テナント・Enterprise識別子を含めません。共有前に内容を確認してください。このページへのアップロードは行いません。',
+        'path.followup': '承認された設定変更を行った後、対象クライアントを再起動し、失敗したログインやチャット操作を再試行してください。問題が続く場合はIDEの診断ログを収集してください。このスクリプトはCopilotの復旧を保証するものではなく、VPNのスプリットトンネリングも診断しません。',
         'ide.title': 'IDE ネットワーク診断',
+        'ide.docsLogs': '公式ドキュメント: ログ',
+        'ide.docsNetwork': '公式ドキュメント: プロキシと証明書',
+        'ide.docsAuth': '公式ドキュメント: CLI認証',
+        'ide.docsVoice': '公式ドキュメント: 音声機能',
         'footer.allowlist': '許可リストリファレンス',
         'footer.network': 'ネットワーク設定',
         'footer.routing': 'サブスクリプションルーティング',
-        'footer.built': 'GitHub Supportのために構築',
+        'footer.built': 'GitHub Support向けツール',
         'dynamic.checking': 'チェック中...',
         'dynamic.runCheck': 'チェック実行',
         'dynamic.timeout': 'タイムアウト (8秒)',
@@ -1164,63 +1320,103 @@ const TRANSLATIONS = {
         'config.title': '環境と機能',
         'config.scope': '設定は許可リスト、ブラウザチェック、生成スクリプトに共通で適用されます。',
         'config.deployment': '環境:',
-        'config.routing': 'ネットワークで許可する組織プランを選択します。個人プランはブロックされます。上記のユーザープランとは別の設定です。',
+        'config.individual': '個人用 — Free / Pro / Pro+ / Max',
+        'config.routing': 'このネットワークで許可するサブスクリプショングループを選択してください。選択したグループを許可し、それ以外をブロックするルールを生成します。ルールは自動適用されません。上のユーザープランとは別の設定です。個人向けプランは同じルーティンググループに属するため、ProだけをFree / Pro+ / Maxと分けて許可することはできません。',
         'config.reports': '使用状況レポートのダウンロード',
         'config.publicCode': 'パブリックコードの検出',
         'config.voice': 'CLI / Copilot appの音声モデルダウンロード',
         'config.limit': 'ワイルドカード全体は検証できません。問題が発生した環境でスクリプトを実行してください。GHE.comは専用サービスを使用し、GitHub.comのルーティングは使用しません。Studentのルーティングは公式資料に明記されていません。',
-        'config.slugError': '有効なGHE.comサブドメインを入力してください（1〜63文字の英数字、内部のハイフン）。',
+        'config.slugError': 'GHE.comサブドメインを半角英数字とハイフンを使って1〜63文字で入力してください。先頭と末尾にハイフンは使用できません。',
         'config.emuError': '認証に使用する有効なEnterpriseスラッグを入力してください。',
-        'config.routingError': '許可する組織プランを1つ以上選択してください。',
-        'config.proxyError': '認証情報、クエリ、フラグメントを含まないhttp://プロキシURLを使用してください。認証情報はクライアントで安全に設定してください。',
+        'config.routingError': '許可するサブスクリプショングループを1つ以上選択してください。',
+        'config.proxyError': 'http://proxy.example.com:8080のように、ホスト名と、必要に応じてポート番号を含むhttp://プロキシURLを入力してください。認証情報・パス・クエリ文字列・フラグメントは含めないでください。認証情報はクライアントで安全に設定してください。',
         'config.changed': '結果はチェック開始時の設定に基づきます。設定変更後は再実行してください。ブラウザとクライアントのプロキシや証明書は異なる場合があります。',
-        'footer.verified': '公式資料確認日: 2026-10-02。ルールは確認時点のもので、自動更新されません。'
+        'footer.verified': '公式資料確認日: 2026-10-06。ルールは確認時点のもので、自動更新されません。'
     },
     ko: {
         'header.copilot': 'Copilot',
         'header.networkCheck': '네트워크 진단',
         'page.title': 'Copilot 네트워크 연결 확인',
         'page.subtitle': 'GitHub Copilot에 필요한 네트워크 엔드포인트의 연결 상태를 확인하고, 방화벽 허용 규칙을 생성합니다',
-        'quickCheck.title': '빠른 검사',
+        'quickCheck.title': '브라우저 사전 확인',
         'quickCheck.run': '검사 실행',
         'quickCheck.desc': '선택한 환경의 대표 엔드포인트를 확인합니다. 모든 와일드카드 호스트나 Copilot 인증을 검증하지는 않습니다.',
         'quickCheck.firewall': '방화벽 체크리스트',
-        'quickCheck.cloudAgent': 'Cloud Agent',
+        'quickCheck.cloudAgent': '클라우드 에이전트',
         'quickCheck.script': '스크립트 생성',
         'quickCheck.ide': 'IDE 진단',
         'results.title': '결과',
         'results.copyText': '텍스트 복사',
         'results.json': 'JSON',
         'results.info': 'ℹ️ <code>fetch(no-cors)</code>는 HTTP 상태나 내용을 읽을 수 없습니다. ✓는 브라우저 요청 완료일 뿐 Copilot 정상 작동을 보장하지 않습니다. 실패 원인은 DNS, TLS, 브라우저 제한, 확장 기능, 방화벽 등입니다. HTTP 상태는 생성 스크립트로 확인하세요.',
-        'results.reachable': '연결됨',
+        'results.reachable': '요청 완료',
         'results.slow': '지연',
         'results.blocked': '요청 실패',
         'results.pending': '대기 중',
         'results.checking': '확인 중...',
         'firewall.title': '방화벽 / 프록시 허용 목록',
         'firewall.copyRules': '규칙 복사',
-        'firewall.info': '방화벽이나 프록시 서버에 적용할 <strong>패턴 기반 규칙</strong>입니다. 와일드카드 도메인은 동적 서브도메인을 사용하므로 직접 테스트할 수 없습니다. IT/보안 팀에 이 목록을 공유하세요.',
-        'firewall.plan': '플랜:',
+        'firewall.info': '방화벽이나 프록시 서버에 적용할 <strong>패턴 기반 규칙</strong>입니다. 와일드카드 패턴 자체를 호스트 이름으로 사용해 검사할 수는 없습니다. IT팀이나 보안팀에 이 목록을 공유하세요. 이 도구가 규칙을 직접 적용하지는 않습니다.',
+        'firewall.plan': '사용자 플랜:',
+        'config.ghePlan': 'GHE.com에서는 선택한 플랜을 참고 정보로 기록하며, 네트워크 허용 목록에는 영향을 주지 않습니다. 구독 기반 네트워크 라우팅은 지원하지 않습니다.',
         'firewall.ghecom': 'GHE.com (데이터 레지던시)',
         'firewall.emu': 'Enterprise Managed Users',
         'firewall.routing': '구독 기반 라우팅',
         'firewall.gheSubdomain': 'GHE.com 서브도메인:',
-        'firewall.emuSlug': 'Enterprise 슬러그:',
-        'routing.info': '<strong>구독 기반 라우팅</strong><p>Business, Enterprise 또는 둘 다 허용할 수 있습니다. Free / Pro / Pro+ / Max 접근은 <code>*.individual.githubcopilot.com</code> 차단으로 제한합니다. Student 매핑은 공식 자료에 명시되어 있지 않습니다.</p><p><code>*.githubcopilot.com</code>을 허용하면 플랜 제한이 무력화됩니다. 이 모드에서는 공용 Chat ping을 제외합니다. 검사 성공이 플랜별 와일드카드 연결을 보장하지 않으므로 클라이언트 진단을 사용하세요.</p><p>최신 클라이언트를 권장합니다. 최소 버전: VS Code Copilot Chat 0.17+, JetBrains 1.5.6.5692+, VS 2022 17.11+. <a href="https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-for-enterprise/manage-access/manage-network-access" target="_blank">공식 문서</a></p>',
-        'cloudAgent.title': 'Cloud agent / code review 인터넷 접근',
+        'firewall.emuSlug': 'Enterprise 슬러그(URL 식별자):',
+        'routing.info': '<strong>구독 기반 라우팅</strong><p>개인용, Business, Enterprise를 원하는 조합으로 허용할 수 있습니다. Free / Pro / Pro+ / Max는 <code>*.individual.githubcopilot.com</code>을 공유하므로 네트워크 규칙으로 서로 구분할 수 없습니다. Student 매핑은 공식 자료에 명시되어 있지 않습니다.</p><p><code>*.githubcopilot.com</code>을 허용하면 그룹 제한이 무력화됩니다. 이 모드에서는 공용 Chat ping을 제외합니다. 검사 성공이 그룹별 와일드카드 연결을 보장하지 않으므로 클라이언트 진단을 사용하세요. 구독 제한이 필요 없으면 라우팅을 끄세요.</p><p>최신 클라이언트를 권장합니다. 최소 버전: VS Code Copilot Chat 0.17+, JetBrains 1.5.6.5692+, VS 2022 17.11+. <a href="https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-for-enterprise/manage-access/manage-network-access" target="_blank">공식 문서</a></p>',
+        'cloudAgent.title': '클라우드 에이전트 / 코드 리뷰 인터넷 액세스',
         'cloudAgent.copyRules': '규칙 복사',
-        'cloudAgent.info': '<p>조직 또는 저장소의 <strong>Settings → Copilot → Internet access</strong>에서 cloud agent와 code review를 각각 설정합니다. 조직 규칙과 허용된 저장소 규칙은 합쳐집니다. 아래는 기본 활성화되는 cloud agent 권장 목록이며, PC 방화벽 목록이나 별도로 검증한 code review 전용 목록이 아닙니다.</p><p>에이전트 방화벽은 Actions 환경의 에이전트 Bash 프로세스에 적용되며 MCP 서버나 setup steps에는 직접 적용되지 않습니다. 도메인 규칙은 하위 도메인을 포함하고, URL 규칙은 스킴·호스트·경로를 제한합니다. <a href="https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall" target="_blank">공식 문서 및 한계</a></p>',
+        'cloudAgent.info': '<p>조직 또는 저장소의 <strong>Settings → Copilot → Internet access</strong>에서 클라우드 에이전트와 코드 리뷰를 각각 설정합니다. 조직 규칙과 허용된 저장소 규칙이 함께 적용됩니다. 아래는 공식 문서에 안내된, 기본으로 활성화되는 클라우드 에이전트의 권장 허용 목록입니다. 사용자 PC용 방화벽 목록이나 코드 리뷰 전용으로 검증한 목록은 아닙니다.</p><p>에이전트 방화벽은 Actions 환경에서 에이전트가 실행하는 Bash 프로세스에만 적용됩니다. MCP 서버 프로세스나 설정 단계에는 직접 적용되지 않습니다. 도메인 규칙은 하위 도메인도 포함하며, URL 규칙은 스킴·호스트·경로를 지정합니다. <a href="https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-the-firewall" target="_blank">공식 문서 및 제한 사항</a></p>',
         'cloudAgent.expandAll': '모두 펼치기',
         'cloudAgent.collapseAll': '모두 접기',
         'script.title': '진단 스크립트',
-        'script.copy': '복사',
-        'script.download': '다운로드',
-        'script.verbose': '소요 시간 / TLS 검증 상세',
+        'script.copy': '스크립트 복사',
+        'script.download': '실행용 다운로드 (.sh / .zsh / .ps1)',
+        'script.downloadTxt': '.txt 다운로드',
+        'script.shellHelp': '스크립트를 다운로드하거나, 복사한 내용을 텍스트 편집기에 붙여넣어 파일로 저장하세요. 전체 스크립트를 터미널에 붙여넣으면 zsh가 #! 줄에서 “event not found” 오류를 낼 수 있습니다. 터미널에서 파일을 저장한 폴더로 이동한 뒤 아래 명령을 실행하세요.',
+        'script.verbose': '소요 시간 / TLS 검증 상세 정보',
         'script.dns': 'DNS 조회',
         'script.cert': '인증서 신뢰 안내 / CA 파일 확인',
-        'script.proxy': '프록시 감지',
+        'script.proxy': '프록시 환경 변수 확인',
         'script.proxyUrl': '프록시 URL:',
+        'path.browserLimit': '프록시 URL은 스크립트에만 적용됩니다. 브라우저의 프록시나 VPN 경로는 바뀌지 않습니다.',
+        'advanced.title': 'OS별 고급 진단 (선택 사항)',
+        'advanced.intro': '먼저 위의 기본 스크립트를 사용하세요. 네트워크 경로에 대한 추가 단서가 필요할 때만 OS별 검사를 사용합니다. Copilot 로그인이나 기능 사용 가능 여부를 검증하는 검사는 아닙니다.',
+        'path.download': '실행용 다운로드',
+        'path.title': '프록시 경로 비교',
+        'path.intro': '이 스크립트는 설정 정보를 수집하고, curl로 같은 엔드포인트에 경로별로 요청을 보냅니다. 시스템·IDE·VPN 설정을 변경하거나 PAC 파일을 실행하거나 Copilot에 로그인하지 않습니다. 위의 프록시 URL은 사용하지만 기본 스크립트의 체크박스 설정은 적용하지 않습니다.',
+        'path.environment': '운영체제:',
+        'path.shell': '실행 셸:',
+        'path.vpn': '실행 시 VPN 연결 상태(직접 선택):',
+        'path.unknown': '모름',
+        'path.on': 'VPN 연결됨',
+        'path.off': 'VPN 연결 안 됨',
+        'path.direct': '직접 연결도 검사 — 회사 정책상 허용된 경우에만 선택',
+        'path.routes': '비교할 경로',
+        'path.default': 'curl의 현재 설정: OS의 프록시·PAC 설정 대신 프록시 환경 변수를 사용합니다. IDE와 경로가 다를 수 있으며, 반드시 직접 연결인 것은 아닙니다.',
+        'path.explicit': 'IT팀 지정 프록시: 위 URL을 사용합니다. NO_PROXY에 등록된 대상도 이 검사 요청에서는 지정 프록시를 거칩니다. 프록시 인증은 자동으로 시도하지 않습니다.',
+        'path.directNote': '직접 연결: 애플리케이션 프록시를 명시적으로 사용하지 않습니다. VPN·투명 프록시·회사 네트워크 제어를 우회하거나 끄지는 않습니다.',
+        'path.missingProxy': '지정 프록시 URL이 입력되지 않았습니다. curl의 현재 설정으로 검사하며, 직접 연결을 선택한 경우 해당 검사도 실행합니다. 지정 프록시와의 비교는 수행하지 않습니다.',
+        'path.clues.windows': 'Windows: 현재 사용자의 PAC·수동 프록시 설정 정보와 프록시·CA 환경 변수의 설정 여부를 수집합니다. 값이 없으면 미확인으로 기록합니다. WinHTTP·관리 정책·IDE 설정·VPN 경로는 검증하지 않습니다.',
+        'path.clues.linux': 'Linux: 프록시·CA 환경 변수의 설정 여부를 수집합니다. 데스크톱별 프록시·PAC 설정은 수집하지 않으며, GNOME·KDE·서비스·IDE마다 설정이 다를 수 있습니다. VPN 경로는 검증하지 않습니다.',
+        'path.clues.macos': 'macOS: scutil에서 제공하는 프록시·PAC 활성화 플래그와 프록시·CA 환경 변수의 설정 여부를 수집합니다. 주소는 제외하고, 플래그가 없으면 미확인으로 기록합니다. 시스템 설정만으로 curl이나 IDE의 실제 경로를 단정하지 않습니다. VPN 경로는 검증하지 않습니다.',
+        'path.interpret': '결과 해석',
+        'path.compare': 'curl의 현재 설정에서는 실패하고 지정 프록시에서는 예상한 상태 확인 응답을 받았다면, Copilot이 사용하는 프록시 설정과 비교하세요. 이 결과만으로 PAC가 원인이라고 단정할 수는 없습니다.',
+        'path.auth': 'CONNECT 또는 HTTP 상태가 407이면 IT팀에 프록시 인증 설정을 확인하세요. TLS 오류가 발생하면 승인된 회사 CA 인증서와 클라이언트의 신뢰 저장소를 확인하세요. 인증서 검증을 끄지 마세요.',
+        'path.health': '상태 확인용 엔드포인트의 HTTP 200은 해당 요청에 응답이 왔다는 뜻입니다. CONNECT 200이 최종 HTTP 응답도 200이라는 뜻은 아닙니다. 로그인·정책·응답 내용·다른 기능은 확인하지 않습니다.',
+        'path.run': '실행 및 공유',
+        'path.instructions.windows': '.ps1을 다운로드해 내용을 검토한 뒤 curl.exe가 설치된 Windows의 PowerShell에서 실행하세요. 스크립트 실행 정책을 우회하지 마세요.',
+        'path.instructions.unix': '.sh(Bash) 또는 .zsh(Zsh) 파일을 다운로드해 내용을 검토하세요. 복사 버튼은 실행 명령이 아닌 파일 내용을 복사합니다. zsh에 직접 붙여넣으면 #! 줄에서 “event not found” 오류가 날 수 있으므로 텍스트 편집기에서 파일로 저장하세요. 저장한 폴더에서 아래 명령을 실행하세요. 선택한 셸(Bash 3.2 이상 또는 Zsh 5 이상)과 curl이 필요하며 Python이나 jq는 필요하지 않습니다.',
+        'path.location': '문제가 발생한 환경 안에서 실행하세요. VM·WSL·컨테이너·원격 세션에서는 호스트가 아닌 해당 환경의 OS를 선택하세요. 회사의 실행 정책을 따르세요.',
+        'path.output': '현재 폴더에 이름이 중복되지 않는 copilot-path-check-*.json 보고서를 저장하고 요약을 출력합니다. 확인하지 못한 단계는 미확인으로 기록합니다. 보고서 저장 후 검사 실패·미실행은 종료 코드 1, 경고·설정 정보 수집 실패는 종료 코드 2를 반환합니다.',
+        'path.privacy': '다운로드한 스크립트에는 입력한 프록시·테넌트 주소가 포함되므로 로컬에서 보관하세요. JSON에는 프록시·PAC URL, 인증 정보, 응답 본문, 원시 오류, 비공개 테넌트·Enterprise 식별자를 넣지 않습니다. 공유 전 내용을 확인하세요. 이 페이지로 결과를 업로드하지 않습니다.',
+        'path.followup': '승인된 설정 변경 후 대상 클라이언트를 재시작하고 원래 실패한 로그인·Chat을 다시 시도하세요. 계속 실패하면 IDE 진단 로그를 수집하세요. 이 스크립트는 Copilot 복구를 보증하거나 VPN 분할 터널링을 진단하지 않습니다.',
         'ide.title': 'IDE 네트워크 진단',
+        'ide.docsLogs': '공식 문서: 로그',
+        'ide.docsNetwork': '공식 문서: 프록시와 인증서',
+        'ide.docsAuth': '공식 문서: CLI 인증',
+        'ide.docsVoice': '공식 문서: 음성 기능',
         'footer.allowlist': '허용 목록 참조',
         'footer.network': '네트워크 설정',
         'footer.routing': '구독 라우팅',
@@ -1236,17 +1432,18 @@ const TRANSLATIONS = {
         'config.title': '환경 및 기능',
         'config.scope': '허용 목록, 브라우저 검사, 생성 스크립트에 공통으로 적용됩니다.',
         'config.deployment': '사용 환경:',
-        'config.routing': '이 네트워크에서 허용할 조직 플랜을 선택하세요. 개인 플랜은 차단됩니다. 위 사용자 플랜과는 별도 설정입니다.',
+        'config.individual': '개인용 — Free / Pro / Pro+ / Max',
+        'config.routing': '이 네트워크에서 허용할 구독 그룹을 선택하세요. 선택한 그룹은 허용하고 나머지는 차단하는 규칙을 생성합니다. 규칙이 자동으로 적용되지는 않습니다. 위 사용자 플랜과는 별도 설정입니다. 개인용 플랜은 같은 라우팅 그룹을 사용하므로 Pro만 Free / Pro+ / Max와 구분해 허용할 수는 없습니다.',
         'config.reports': '사용량 보고서 다운로드',
         'config.publicCode': '공개 코드 탐지',
         'config.voice': 'CLI / Copilot app 음성 모델 다운로드',
         'config.limit': '와일드카드 전체를 검사할 수는 없습니다. 문제가 발생한 클라이언트 환경에서 스크립트를 실행하세요. GHE.com은 전용 서비스를 사용하며 GitHub.com 구독 라우팅은 지원하지 않습니다. Student 라우팅은 공식 자료에 명시되어 있지 않습니다.',
-        'config.slugError': '올바른 GHE.com 서브도메인을 입력하세요(1~63자의 영숫자, 중간 하이픈).',
+        'config.slugError': 'GHE.com 서브도메인을 영문자·숫자·하이픈을 사용해 1~63자로 입력하세요. 처음과 마지막에는 하이픈을 사용할 수 없습니다.',
         'config.emuError': '관리형 사용자 인증에 필요한 Enterprise 슬러그를 입력하세요.',
-        'config.routingError': '허용할 조직 플랜을 하나 이상 선택하세요.',
-        'config.proxyError': '인증 정보, 쿼리, 프래그먼트 없는 http:// 프록시 URL을 사용하세요. 인증 정보는 내보내는 스크립트가 아닌 클라이언트에서 안전하게 설정하세요.',
+        'config.routingError': '허용할 구독 그룹을 하나 이상 선택하세요.',
+        'config.proxyError': 'http://proxy.example.com:8080처럼 호스트 이름과 필요한 경우 포트 번호를 포함한 http:// 프록시 URL을 입력하세요. 인증 정보·경로·쿼리 문자열·프래그먼트는 넣지 마세요. 인증 정보는 클라이언트에서 안전하게 설정하세요.',
         'config.changed': '결과는 검사 시작 시 설정을 기준으로 합니다. 설정 변경 후 다시 실행하세요. 브라우저와 클라이언트의 프록시·인증서 설정은 다를 수 있습니다.',
-        'footer.verified': '공식 문서 확인일: 2026-10-02. 목록은 확인 시점의 자료이며 실시간으로 갱신되지 않습니다.'
+        'footer.verified': '공식 문서 확인일: 2026-10-06. 목록은 확인 시점의 자료이며 실시간으로 갱신되지 않습니다.'
     }
 };
 
@@ -1353,6 +1550,7 @@ const TESTABLE_ENDPOINTS = {
     auth: {
         name: 'Authentication',
         endpoints: [
+            { url: 'https://github.com', purpose: 'GitHub website (apex domain; reachability only)' },
             { url: 'https://github.com/login', purpose: 'GitHub authentication' },
             { url: 'https://api.github.com/user', purpose: 'User management API' },
             { url: 'https://api.github.com/copilot_internal/', purpose: 'Copilot internal API' },
@@ -1386,7 +1584,7 @@ const TESTABLE_ENDPOINTS = {
 };
 
 const ALLOWLIST_SOURCE = 'https://docs.github.com/en/copilot/reference/copilot-allowlist-reference';
-const REVIEWED_AT = '2026-10-02';
+const REVIEWED_AT = '2026-10-06';
 const VOICE_RULES = [
     { domain: 'ai.azure.com', purpose: 'Voice model catalog' },
     { domain: 'api.catalog.azureml.ms', purpose: 'Voice download region discovery' },
@@ -1404,6 +1602,7 @@ function getFirewallRules(plan, options) {
         );
     } else {
         rules.push(
+            { domain: 'github.com', purpose: 'GitHub website (apex domain; not covered by *.github.com)', tag: 'required' },
             { domain: 'github.com/login/*', purpose: 'Authentication', tag: 'required' },
             { domain: 'github.githubassets.com', purpose: 'Authentication assets', tag: 'required' },
             { domain: 'avatars.githubusercontent.com', purpose: 'Authentication avatars', tag: 'required' },
@@ -1420,7 +1619,7 @@ function getFirewallRules(plan, options) {
                 rules.push({
                     domain: `*.${key}.githubcopilot.com`,
                     purpose: `${key} routing group`,
-                    tag: key !== 'individual' && options.routingPlans.includes(key) ? 'routing-allow' : 'routing-block',
+                    tag: options.routingPlans.includes(key) ? 'routing-allow' : 'routing-block',
                 });
             }
         } else {
@@ -1456,7 +1655,9 @@ let isRunning = false;
 // ============================================================
 // UI HELPERS
 // ============================================================
-function getSelectedPlan() { return document.getElementById('plan').value; }
+function getSelectedPlan() {
+    return document.getElementById(document.getElementById('deployment').value === 'ghe' ? 'ghe-plan' : 'plan').value;
+}
 
 function getOptions() {
     const ghecom = document.getElementById('deployment').value === 'ghe';
@@ -1466,7 +1667,7 @@ function getOptions() {
         emu: !ghecom && document.getElementById('opt-emu').checked,
         emuSlug: document.getElementById('emu-slug').value.trim(),
         routing: !ghecom && document.getElementById('opt-routing').checked,
-        routingPlans: ['business', 'enterprise'].filter(plan => document.getElementById(`routing-${plan}`).checked),
+        routingPlans: ['individual', 'business', 'enterprise'].filter(plan => document.getElementById(`routing-${plan}`).checked),
         reports: !ghecom && document.getElementById('opt-reports').checked,
         publicCode: !ghecom || document.getElementById('opt-public-code').checked,
         voice: document.getElementById('opt-voice').checked,
@@ -1478,7 +1679,7 @@ function configurationError(options) {
     const slug = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i;
     if (options.ghecom && !slug.test(options.gheSubdomain)) return 'config.slugError';
     if (!options.ghecom && options.emu && !slug.test(options.emuSlug)) return 'config.emuError';
-    if (!options.ghecom && options.routing && !options.routingPlans.some(plan => ['business', 'enterprise'].includes(plan))) return 'config.routingError';
+    if (!options.ghecom && options.routing && !options.routingPlans.some(plan => ['individual', 'business', 'enterprise'].includes(plan))) return 'config.routingError';
     if (options.proxyUrl) {
         try {
             const url = new URL(options.proxyUrl);
@@ -1499,7 +1700,10 @@ function validateConfiguration(options) {
 function refreshConfiguration() {
     const options = getOptions();
     document.getElementById('ghe-input').classList.toggle('visible', options.ghecom);
-    document.getElementById('plan-input').hidden = options.ghecom;
+    document.getElementById('plan').hidden = options.ghecom;
+    document.getElementById('ghe-plan').hidden = !options.ghecom;
+    document.getElementById('ghe-plan-note').hidden = !options.ghecom;
+    document.getElementById('plan-label').htmlFor = options.ghecom ? 'ghe-plan' : 'plan';
     document.getElementById('github-options').hidden = options.ghecom;
     document.getElementById('public-code-option').hidden = !options.ghecom;
     document.getElementById('emu-input').classList.toggle('visible', options.emu);
@@ -1510,7 +1714,8 @@ function refreshConfiguration() {
     notice.hidden = !error;
     notice.textContent = error ? t(error) : '';
     document.getElementById('btn-run').disabled = !!error || isRunning;
-    for (const id of ['copy-firewall', 'copy-script', 'download-script']) document.getElementById(id).disabled = !!error;
+    for (const id of ['copy-firewall', 'copy-script', 'download-script', 'download-script-txt',
+        'copy-path-script', 'download-path-script', 'download-path-script-txt']) document.getElementById(id).disabled = !!error;
     renderFirewallChecklist();
     renderScript();
 }
@@ -1529,7 +1734,7 @@ function toggleSection(id) {
 }
 
 // Event listeners for firewall options
-document.querySelectorAll('#deployment, #plan, #opt-emu, #opt-routing, #routing-business, #routing-enterprise, #opt-reports, #opt-public-code, #opt-voice, #ghe-subdomain, #emu-slug, #proxy-url').forEach(el => {
+document.querySelectorAll('#deployment, #plan, #ghe-plan, #opt-emu, #opt-routing, #routing-individual, #routing-business, #routing-enterprise, #opt-reports, #opt-public-code, #opt-voice, #ghe-subdomain, #emu-slug, #proxy-url').forEach(el => {
     el.addEventListener('input', refreshConfiguration);
 });
 
@@ -1591,7 +1796,7 @@ async function runCheck() {
     currentRun = {
         timestamp: new Date().toISOString(),
         deployment: options.ghecom ? `${options.gheSubdomain}.ghe.com` : 'github.com',
-        plan: options.ghecom ? null : getSelectedPlan(),
+        plan: getSelectedPlan(),
         routing: options.routing,
         allowedPlans: options.routing ? options.routingPlans : [],
         emuSlug: options.emu ? options.emuSlug : null,
@@ -1744,7 +1949,7 @@ function renderFirewallChecklist() {
 function buildFirewallRulesText() {
     const rules = getFirewallRules(getSelectedPlan(), getOptions());
     const options = getOptions();
-    let text = `GitHub Copilot Firewall Rules\nEnvironment: ${options.ghecom ? `${options.gheSubdomain}.ghe.com` : 'github.com'}\nUser plan: ${options.ghecom ? 'N/A (tenant services)' : getSelectedPlan()}\nReviewed: ${REVIEWED_AT}\nRules apply only to selected features. URL paths require a path-aware proxy; do not treat them as DNS hostnames.\n\nALLOW\n`;
+    let text = `GitHub Copilot Firewall Rules\nEnvironment: ${options.ghecom ? `${options.gheSubdomain}.ghe.com` : 'github.com'}\nUser plan: ${getSelectedPlan()}${options.ghecom ? ' (context only; tenant network rules are independent of plan)' : ''}\nReviewed: ${REVIEWED_AT}\nRules apply only to selected features. URL paths require a path-aware proxy; do not treat them as DNS hostnames.\n\nALLOW\n`;
     for (const r of rules.filter(rule => rule.tag !== 'routing-block')) text += `${r.domain} # ${r.purpose}\n`;
     const blocked = rules.filter(rule => rule.tag === 'routing-block');
     if (blocked.length) text += `\nBLOCK (not allowlist entries)\n${blocked.map(rule => rule.domain).join('\n')}\n`;
@@ -1779,7 +1984,8 @@ const CLOUD_AGENT_ALLOWLIST = {
         'npmjs.org', 'npmjs.com', 'registry.npmjs.com', 'registry.npmjs.org',
         'skimdb.npmjs.com', 'npm.pkg.github.com', 'api.npms.io', 'nodejs.org',
         'yarnpkg.com', 'registry.yarnpkg.com', 'repo.yarnpkg.com', 'deb.nodesource.com',
-        'get.pnpm.io', 'bun.sh', 'deno.land', 'registry.bower.io', 'binaries.prisma.sh'
+        'get.pnpm.io', 'bun.sh', 'deno.land', 'registry.bower.io', 'binaries.prisma.sh',
+        'aspire.dev'
     ],
     'Python': [
         'pypi.python.org', 'pypi.org', 'pip.pypa.io', '*.pythonhosted.org',
@@ -1901,7 +2107,8 @@ function bashQuote(value) { return "'" + String(value).replaceAll("'", "'\\''") 
 function powershellQuote(value) { return "'" + String(value).replaceAll("'", "''") + "'"; }
 function scriptHosts(groups) { return [...new Set(groups.flatMap(group => group.endpoints.map(ep => new URL(ep.url).hostname)))]; }
 
-function generateBashScript() {
+function generateBashScript(shell = 'bash') {
+    if (!['bash', 'zsh'].includes(shell)) throw new Error('Unsupported script shell');
     const options = getOptions();
     const groups = getScriptEndpoints();
     const verbose = document.getElementById('opt-verbose').checked;
@@ -1911,12 +2118,12 @@ function generateBashScript() {
     const proxyUrl = options.proxyUrl;
     const proxyFlag = proxyUrl ? ` --proxy ${bashQuote(proxyUrl)}` : '';
 
-    let s = `#!/bin/bash
+    let s = `#!/bin/${shell}
 # Copilot Network Connectivity Check
 # Rules reviewed: ${REVIEWED_AT}
 # Source: ${ALLOWLIST_SOURCE}
 # Environment: ${options.ghecom ? `${options.gheSubdomain}.ghe.com` : 'github.com'}
-# Plan: ${options.ghecom ? 'N/A' : getSelectedPlan()}; allowed routing groups: ${options.routing ? options.routingPlans.join(', ') : 'not restricted'}
+# Plan: ${getSelectedPlan()}${options.ghecom ? ' (context only; tenant network rules are independent of plan)' : ''}; allowed routing groups: ${options.ghecom ? 'not supported on GHE.com' : options.routing ? options.routingPlans.join(', ') : 'not restricted'}
 # Representative hosts only. Wildcards, authentication and client behavior are not fully tested.
 # HTTP 200 is required for documented health probes; other responses are reachability only.
 set -euo pipefail
@@ -2020,7 +2227,7 @@ function generatePowerShellScript() {
 # Rules reviewed: ${REVIEWED_AT}
 # Source: ${ALLOWLIST_SOURCE}
 # Environment: ${options.ghecom ? `${options.gheSubdomain}.ghe.com` : 'github.com'}
-# Plan: ${options.ghecom ? 'N/A' : getSelectedPlan()}; allowed routing groups: ${options.routing ? options.routingPlans.join(', ') : 'not restricted'}
+# Plan: ${getSelectedPlan()}${options.ghecom ? ' (context only; tenant network rules are independent of plan)' : ''}; allowed routing groups: ${options.ghecom ? 'not supported on GHE.com' : options.routing ? options.routingPlans.join(', ') : 'not restricted'}
 # Representative hosts only. Wildcards, authentication and client behavior are not fully tested.
 # HTTP 200 is required for documented health probes; other responses are reachability only.
 $ErrorActionPreference = 'Stop'
@@ -2124,14 +2331,575 @@ exit 0
     return s;
 }
 
+function getPathTargets() {
+    const options = getOptions();
+    return getTestableGroups(options).flatMap(group => group.endpoints).map((endpoint, index) => ({
+        ...endpoint,
+        id: `endpoint-${index + 1}`,
+        displayTarget: options.ghecom
+            ? endpoint.url.replaceAll(`${options.gheSubdomain}.ghe.com`, '[tenant].ghe.com')
+            : options.emu ? endpoint.url.replace(`/enterprises/${options.emuSlug}/`, '/enterprises/[enterprise]/') : endpoint.url,
+    }));
+}
+
+function generateWindowsPathScript() {
+    const options = getOptions();
+    const targets = getPathTargets();
+    const direct = document.getElementById('path-direct').checked;
+    const environment = 'windows';
+    const vpn = document.getElementById('path-vpn').value;
+    return String.raw`# Copilot Windows path diagnostics. Review before running; use approved execution policy.
+# Keep this script local: it contains entered proxy/tenant addresses. Share the redacted JSON instead.
+# Source: ${ALLOWLIST_SOURCE}
+# Reviewed: ${REVIEWED_AT}
+param([string]$OutputDirectory = '.')
+$ErrorActionPreference = 'Stop'
+$designatedProxy = ${powershellQuote(options.proxyUrl)}
+$includeDirect = $${direct}
+$targets = @(
+${targets.map(ep => `    [pscustomobject]@{ id = ${powershellQuote(ep.id)}; url = ${powershellQuote(ep.url)}; displayTarget = ${powershellQuote(ep.displayTarget)}; purpose = ${powershellQuote(ep.purpose)}; expectedStatus = ${ep.expectedStatus || 0} }`).join('\n')}
+)
+$routes = @('environment-default')
+if ($designatedProxy) { $routes += 'designated-proxy' }
+if ($includeDirect) { $routes += 'direct-authorized' }
+$report = [ordered]@{
+    schemaVersion = 1
+    tool = 'Copilot Windows path diagnostics'
+    startedAt = [DateTime]::UtcNow.ToString('o')
+    completedAt = $null
+    source = '${ALLOWLIST_SOURCE}'
+    rulesReviewedAt = '${REVIEWED_AT}'
+    environment = ${powershellQuote(environment)}
+    vpn = @{ state = ${powershellQuote(vpn)}; evidence = 'user-reported when generating script; not detected' }
+    deployment = '${options.ghecom ? 'ghe.com (tenant redacted)' : 'github.com'}'
+    userPlan = ${powershellQuote(getSelectedPlan())}
+    routingGroups = @(${options.routing ? options.routingPlans.map(powershellQuote).join(', ') : ''})
+    powershellVersion = $PSVersionTable.PSVersion.ToString()
+    curlVersion = $null
+    routeDefinitions = @{
+        'environment-default' = 'curl environment variables; .curlrc disabled. Not Windows PAC or necessarily the IDE route; not assumed direct.'
+        'designated-proxy' = 'Explicit HTTP proxy; NO_PROXY bypass disabled for this child request. No automatic proxy authentication.'
+        'direct-authorized' = 'Application proxy disabled by explicit user authorization. VPN/transparent proxy/network controls remain in effect.'
+    }
+    plannedRoutes = $routes
+    windowsProxyClues = $null
+    environmentPresence = @()
+    collectionErrors = @()
+    results = @()
+    interpretations = @()
+    limitations = @(
+        'No system, IDE, VPN, or process environment settings are changed.'
+        'PAC/WPAD is not downloaded or evaluated. Registry absence does not prove no proxy.'
+        'WinHTTP, managed policies, VPN split tunneling, and IDE settings are not collected.'
+        'Run inside the affected Windows PC/VM. A host-side check does not test WSL/container/remote client paths.'
+        'Tests use curl, not the Copilot runtime. Its proxy selection and trust store can differ.'
+        'DNS/connect timings describe the curl connection and may concern the proxy, not the origin.'
+        'No independent local DNS probe: origin DNS may be resolved by the proxy.'
+        'CONNECT success is not TLS or endpoint HTTP success. Unobserved stages stay unknown.'
+        'HTTP status does not validate response content, sign-in, subscription, policy, or full wildcard coverage.'
+        'No proxy/PAC URLs, private tenant identifiers, credentials, raw errors, response bodies, or IP addresses are exported.'
+    )
+    followUp = 'After an approved change, restart the affected client, retry the original login/Chat action, and collect IDE logs if still failing.'
+}
+
+function Test-WindowsHost {
+    return [Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT
+}
+
+function Get-ProcessEnvironmentPresence {
+    foreach ($name in @('HTTPS_PROXY','https_proxy','HTTP_PROXY','http_proxy','ALL_PROXY','all_proxy','NO_PROXY','no_proxy',
+        'NODE_EXTRA_CA_CERTS','SSL_CERT_FILE','SSL_CERT_DIR','CURL_CA_BUNDLE','AGENT_KERBEROS_SERVICE_PRINCIPAL','COPILOT_USE_DEFAULTPROXY')) {
+        $value = [Environment]::GetEnvironmentVariable($name, 'Process')
+        [pscustomobject]@{ name = $name; isSet = -not [string]::IsNullOrEmpty($value) }
+    }
+}
+
+function Get-WindowsProxyClues {
+    $clues = [ordered]@{
+        scope = 'Current user Internet Settings only; clues, not effective request routing'
+        status = 'unknown'
+        pacUrlConfigured = $null
+        manualProxyEnabled = $null
+        manualProxyServerConfigured = $null
+        bypassListConfigured = $null
+        autoDetectRegistryValue = $null
+        pacApplicationToCopilot = 'not verified'
+    }
+    $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings'
+    try {
+        if (!(Test-Path -LiteralPath $key)) {
+            $clues.status = 'key-not-found'
+            $report.collectionErrors += 'windows-proxy-settings-not-found'
+            Write-Warning 'Windows proxy settings were not found. Effective configuration remains unknown.'
+        } else {
+            $settings = Get-ItemProperty -LiteralPath $key
+            $clues.status = 'read'
+            foreach ($pair in @(
+                @('AutoConfigURL','pacUrlConfigured'),
+                @('ProxyServer','manualProxyServerConfigured'),
+                @('ProxyOverride','bypassListConfigured')
+            )) {
+                $property = $settings.PSObject.Properties[$pair[0]]
+                if ($null -ne $property) { $clues[$pair[1]] = -not [string]::IsNullOrWhiteSpace([string]$property.Value) }
+            }
+            foreach ($pair in @(@('ProxyEnable','manualProxyEnabled'), @('AutoDetect','autoDetectRegistryValue'))) {
+                $property = $settings.PSObject.Properties[$pair[0]]
+                if ($null -ne $property -and $property.Value -in @(0,1)) { $clues[$pair[1]] = [bool]$property.Value }
+            }
+        }
+    } catch {
+        $clues.status = 'read-error'
+        $report.collectionErrors += 'windows-proxy-settings-read-error'
+        Write-Warning 'Could not read current-user Windows proxy settings. Raw errors are omitted for privacy.'
+    }
+    return $clues
+}
+
+function Invoke-PathCurl {
+    param([string]$Executable, [string[]]$CurlArguments)
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $Executable
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    # Preserve empty --noproxy/--proxy arguments on Windows PowerShell 5.1 as well as PowerShell 7.
+    $startInfo.Arguments = ($CurlArguments | ForEach-Object {
+        if ($_ -match '["\\\r\n]') { throw 'Unexpected character in curl argument.' }
+        '"' + $_ + '"'
+    }) -join ' '
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    try {
+        if (!$process.Start()) { throw 'Could not start curl.' }
+        $stdout = $process.StandardOutput.ReadToEndAsync()
+        $stderr = $process.StandardError.ReadToEndAsync()
+        if (!$process.WaitForExit(18000)) {
+            $process.Kill()
+            $process.WaitForExit()
+            return [pscustomobject]@{ exitCode = -1; output = ''; runnerTimedOut = $true }
+        }
+        $text = $stdout.GetAwaiter().GetResult()
+        $null = $stderr.GetAwaiter().GetResult()
+        return [pscustomobject]@{ exitCode = $process.ExitCode; output = $text; runnerTimedOut = $false }
+    } finally {
+        $process.Dispose()
+    }
+}
+
+function Convert-PathObservation {
+    param($Target, [string]$Route, $Raw)
+    $observation = [ordered]@{
+        endpointId = $Target.id
+        target = $Target.displayTarget
+        purpose = $Target.purpose
+        route = $Route
+        expectedHttpStatus = $(if ($Target.expectedStatus) { $Target.expectedStatus } else { $null })
+        curlExitCode = $Raw.exitCode
+        proxyConnectStatus = $null
+        httpStatus = $null
+        tls = 'unknown'
+        sslVerifyResult = $null
+        timingsSeconds = $null
+        severity = 'failure'
+        finding = 'unclassified'
+    }
+    $parts = $Raw.output.Trim() -split '\|'
+    $valid = $parts.Count -eq 7
+    if ($valid) {
+        $valid = $parts[0] -match '^\d{3}$' -and $parts[1] -match '^\d{3}$' -and $parts[2] -match '^\d+$'
+        foreach ($part in $parts[3..6]) { if ($part -notmatch '^\d+(\.\d+)?$') { $valid = $false } }
+    }
+    if ($valid) {
+        $http = [int]$parts[0]
+        $connect = [int]$parts[1]
+        if ($http -gt 0) { $observation.httpStatus = $http }
+        if ($connect -gt 0) { $observation.proxyConnectStatus = $connect }
+        $culture = [Globalization.CultureInfo]::InvariantCulture
+        $observation.timingsSeconds = @{
+            nameLookup = [double]::Parse($parts[3], $culture)
+            connect = [double]::Parse($parts[4], $culture)
+            tlsHandshake = [double]::Parse($parts[5], $culture)
+            total = [double]::Parse($parts[6], $culture)
+        }
+        # A zero verification result before TLS happened is not proof of a validated certificate.
+        if ([int]$parts[2] -ne 0 -or $Raw.exitCode -in @(51,60)) {
+            $observation.sslVerifyResult = [int]$parts[2]
+            $observation.tls = 'verification-failed'
+        } elseif ($Raw.exitCode -eq 0 -and $http -gt 0 -and $Target.url.StartsWith('https://')) {
+            $observation.sslVerifyResult = 0
+            $observation.tls = 'verified-by-curl'
+        } elseif ($Raw.exitCode -eq 35) {
+            $observation.tls = 'handshake-failed'
+        }
+    }
+    if ($Raw.runnerTimedOut) { $observation.finding = 'runner-timeout' }
+    elseif ($observation.proxyConnectStatus -eq 407 -or $observation.httpStatus -eq 407) { $observation.finding = 'proxy-authentication-required' }
+    elseif ($observation.proxyConnectStatus -ge 400) { $observation.finding = 'proxy-connect-rejected' }
+    elseif ($Raw.exitCode -ne 0) {
+        $failures = @{
+            5 = 'proxy-dns-failed'; 6 = 'dns-failed'; 7 = 'connection-failed'; 28 = 'request-timeout'
+            35 = 'tls-handshake-failed'; 51 = 'certificate-verification-failed'; 60 = 'certificate-verification-failed'
+            58 = 'client-certificate-error'; 77 = 'ca-configuration-error'
+        }
+        $observation.finding = if ($failures.ContainsKey([int]$Raw.exitCode)) { $failures[[int]$Raw.exitCode] } else { 'curl-transfer-failed' }
+    } elseif (!$valid -or !$observation.httpStatus) { $observation.finding = 'missing-or-invalid-http-observation' }
+    elseif ($observation.tls -eq 'verification-failed') { $observation.finding = 'certificate-verification-failed' }
+    elseif ($Target.expectedStatus -and $observation.httpStatus -ne $Target.expectedStatus) { $observation.finding = 'unexpected-health-http-status' }
+    elseif ($observation.httpStatus -ge 500) { $observation.finding = 'server-error-response' }
+    elseif ($observation.httpStatus -ge 400) {
+        $observation.severity = 'warning'; $observation.finding = 'authentication-policy-or-path-response'
+    } else {
+        $observation.severity = 'observation'
+        $observation.finding = if ($Target.expectedStatus) { 'expected-health-http-status' } else { 'http-response-only' }
+    }
+    if ($Route -eq 'designated-proxy' -and $observation.severity -eq 'observation' -and $observation.proxyConnectStatus -ne 200) {
+        $observation.severity = 'warning'
+        $observation.finding = 'designated-proxy-connect-not-observed'
+    }
+    return [pscustomobject]$observation
+}
+
+function Get-PathInterpretations {
+    foreach ($target in $targets) {
+        $baseline = @($report.results | Where-Object { $_.endpointId -eq $target.id -and $_.route -eq 'environment-default' })
+        $proxy = @($report.results | Where-Object { $_.endpointId -eq $target.id -and $_.route -eq 'designated-proxy' })
+        if ($baseline.Count -eq 1 -and $proxy.Count -eq 1 -and $baseline[0].severity -eq 'failure' -and
+            $proxy[0].finding -eq 'expected-health-http-status' -and $proxy[0].proxyConnectStatus -eq 200) {
+            [pscustomobject]@{
+                endpointId = $target.id
+                signal = 'designated-proxy-succeeded-where-curl-default-failed'
+                nextStep = 'Compare explicit Copilot proxy settings in the same environment. This is a clue, not proof of a PAC cause or Copilot recovery.'
+            }
+        }
+    }
+}
+
+if (!(Test-WindowsHost)) {
+    $report.collectionErrors += 'windows-host-required'
+    Write-Warning 'This script requires the affected Windows PC/VM. No network checks were run.'
+} else {
+    $report.environmentPresence = @(Get-ProcessEnvironmentPresence)
+    $report.windowsProxyClues = Get-WindowsProxyClues
+    try {
+        $curl = (Get-Command curl.exe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+        $version = Invoke-PathCurl $curl @('--version')
+        if ($version.exitCode -ne 0 -or $version.output -notmatch '^curl (\d+\.\d+\.\d+)') { throw 'Cannot identify curl.' }
+        $report.curlVersion = $Matches[1]
+        foreach ($target in $targets) {
+            foreach ($route in $routes) {
+                $arguments = @('-q', '--silent', '--show-error', '--globoff', '--proto', '=https',
+                    '--connect-timeout', '5', '--max-time', '10', '--output', 'NUL',
+                    '--write-out', '%{http_code}|%{http_connect}|%{ssl_verify_result}|%{time_namelookup}|%{time_connect}|%{time_appconnect}|%{time_total}')
+                if ($route -eq 'designated-proxy') { $arguments += @('--proxy', $designatedProxy, '--noproxy', '') }
+                if ($route -eq 'direct-authorized') { $arguments += @('--proxy', '', '--noproxy', '*') }
+                $arguments += @('--url', $target.url)
+                try {
+                    $raw = Invoke-PathCurl $curl $arguments
+                    $observation = Convert-PathObservation $target $route $raw
+                } catch {
+                    $report.collectionErrors += 'request-runner-error'
+                    Write-Warning "Request runner failed for $($target.id) / $route. Raw errors omitted."
+                    $observation = [pscustomobject]@{
+                        endpointId = $target.id; target = $target.displayTarget; purpose = $target.purpose
+                        route = $route; expectedHttpStatus = $target.expectedStatus; severity = 'failure'
+                        finding = 'request-runner-error'; curlExitCode = $null
+                        proxyConnectStatus = $null; httpStatus = $null; tls = 'unknown'; sslVerifyResult = $null; timingsSeconds = $null
+                    }
+                }
+                $report.results += $observation
+                Write-Host "$($target.id) / $route : $($observation.finding) [CONNECT=$($observation.proxyConnectStatus), HTTP=$($observation.httpStatus), TLS=$($observation.tls)]"
+            }
+        }
+    } catch {
+        $report.collectionErrors += 'curl-unavailable-or-unusable'
+        Write-Warning 'curl.exe could not be used. Install an IT-approved curl for Windows and retry. Raw errors omitted.'
+    }
+}
+if (!$designatedProxy) {
+    Write-Warning 'No designated proxy URL supplied: this is not a designated-proxy comparison.'
+    $report.interpretations += @{ signal = 'designated-proxy-not-tested'; nextStep = 'Ask IT for the approved HTTP proxy URL; do not guess a PAC result.' }
+}
+$report.interpretations += @(Get-PathInterpretations)
+$report.completedAt = [DateTime]::UtcNow.ToString('o')
+$failures = @($report.results | Where-Object severity -eq 'failure').Count
+$warnings = @($report.results | Where-Object severity -eq 'warning').Count
+$expectedCount = $targets.Count * $routes.Count
+$report.summary = @{
+    expectedRequests = $expectedCount
+    completedRequests = $report.results.Count
+    failures = $failures
+    warnings = $warnings
+    collectionComplete = ($report.collectionErrors.Count -eq 0 -and $report.results.Count -eq $expectedCount)
+    copilotRecovery = 'not verified'
+}
+$exitCode = 0
+if ($failures -gt 0 -or $report.results.Count -ne $expectedCount) { $exitCode = 1 }
+elseif ($warnings -gt 0 -or $report.collectionErrors.Count -gt 0 -or !$designatedProxy) { $exitCode = 2 }
+try {
+    $fileName = 'copilot-path-check-' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ') + '-' + [Guid]::NewGuid().ToString('N').Substring(0,8) + '.json'
+    $directory = Get-Item -LiteralPath $OutputDirectory
+    if (!$directory.PSIsContainer -or $directory.PSProvider.Name -ne 'FileSystem') { throw 'A filesystem directory is required.' }
+    $filePath = Join-Path $directory.FullName $fileName
+    $json = $report | ConvertTo-Json -Depth 12
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    $stream = [IO.File]::Open($filePath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+    try {
+        $bytes = $encoding.GetBytes($json)
+        $stream.Write($bytes, 0, $bytes.Length)
+    } finally { $stream.Dispose() }
+    Write-Host "Saved $fileName. Review before sharing. $failures failures; $warnings warnings. Copilot recovery is NOT verified."
+} catch {
+    Write-Error 'Could not save the report. Check the output directory and permissions. No success is claimed.'
+    exit 1
+}
+exit $exitCode
+`;
+}
+
+function generateUnixPathScript(os, shell = 'bash') {
+    if (!['linux', 'macos'].includes(os)) throw new Error('Unsupported Unix diagnostic OS');
+    if (!['bash', 'zsh'].includes(shell)) throw new Error('Unsupported script shell');
+    const options = getOptions();
+    const targets = getPathTargets();
+    const routes = ['environment-default'];
+    if (options.proxyUrl) routes.push('designated-proxy');
+    if (document.getElementById('path-direct').checked) routes.push('direct-authorized');
+    const metadata = {
+        schemaVersion: 1, tool: 'Copilot path diagnostics', environment: os, shell,
+        source: ALLOWLIST_SOURCE, rulesReviewedAt: REVIEWED_AT,
+        deployment: options.ghecom ? 'ghe.com (tenant redacted)' : 'github.com',
+        userPlan: getSelectedPlan(), routingGroups: options.routing ? options.routingPlans : [],
+        vpn: { state: document.getElementById('path-vpn').value, evidence: 'user-reported when generating script; not detected' },
+        plannedRoutes: routes,
+        routeDefinitions: {
+            'environment-default': 'curl environment variables; .curlrc disabled. Not OS proxy/PAC or necessarily the IDE route; not assumed direct.',
+            'designated-proxy': 'Explicit HTTP proxy; NO_PROXY bypass disabled for this request. No automatic proxy authentication.',
+            'direct-authorized': 'Application proxy disabled with user authorization. VPN and transparent network controls remain in effect.',
+        },
+        limitations: [
+            'No system, IDE, VPN, or process environment settings are changed. PAC is not downloaded or evaluated.',
+            'Run inside the affected environment, not the host of a failing VM, WSL, container, or remote client.',
+            'Linux desktop proxy settings are not collected. macOS system flags do not prove the curl or IDE route.',
+            'Managed policies, IDE settings, and VPN split tunneling are not verified.',
+            'curl proxy selection and trust store can differ from the Copilot runtime.',
+            'DNS/connect timings may concern the proxy, not the origin. No independent origin DNS probe is made.',
+            'CONNECT success is not TLS or HTTP success. Unobserved stages remain unknown.',
+            'HTTP status does not verify response content, authentication, subscription, policy, features, or full wildcard coverage.',
+            'Proxy/PAC URLs, credentials, IP addresses, private tenant identifiers, raw errors and response bodies are not exported.',
+        ],
+        followUp: 'After an approved change, restart the affected client and retry the original login/Chat action. Collect IDE logs if still failing.',
+    };
+    return String.raw`#!/bin/${shell}
+# Copilot ${os} path diagnostics. Requires ${shell === 'zsh' ? 'Zsh 5+' : 'Bash 3.2+'} and curl.
+# Review before running. Keep this script local: it contains entered addresses.
+# Share only the reviewed, redacted JSON. No configuration is changed.
+set -${shell === 'bash' ? 'eE' : 'e'}uo pipefail
+trap 'echo "Report incomplete: a local command or report write failed. No success is claimed." >&2' ERR
+designated_proxy=${bashQuote(options.proxyUrl)}
+routes=(${routes.map(bashQuote).join(' ')})
+expected_os=${bashQuote(os === 'macos' ? 'Darwin' : 'Linux')}
+output_directory=.
+if [ "$#" -gt 0 ]; then output_directory="$1"; fi
+if [ ! -d "$output_directory" ]; then echo "Output directory does not exist." >&2; exit 1; fi
+started_at=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+file="$output_directory/copilot-path-check-$(date -u '+%Y%m%dT%H%M%SZ')-$$-$RANDOM.json"
+# Open once without overwriting an existing report; keep its descriptor for all writes.
+set -C
+if ! exec 3> "$file"; then echo "Cannot create report file." >&2; exit 1; fi
+set +C
+cat >&3 <<'REPORT_HEADER'
+${JSON.stringify(metadata, null, 2).slice(0, -1)},
+REPORT_HEADER
+printf '"startedAt":"%s",\n' "$started_at" >&3
+collection_errors=''
+error_separator=''
+add_collection_error() {
+    echo "Collection warning: $1" >&2
+    collection_errors="$collection_errors$error_separator\"$1\""
+    error_separator=','
+}
+host_ok=true
+if [ "$(uname -s)" != "$expected_os" ]; then
+    host_ok=false
+    add_collection_error selected-os-mismatch
+fi
+curl_ok=false
+curl_version=null
+if [ "$host_ok" = true ]; then
+    version=''
+    if command -v curl >/dev/null 2>&1 && version=$(trap - ERR; curl -q --version 2>/dev/null); then
+        if [[ "$version" =~ ^curl\ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            curl_ok=true
+            curl_version="\"${shell === 'zsh' ? '${match[1]}' : '${BASH_REMATCH[1]}'}\""
+        fi
+    fi
+    if [ "$curl_ok" != true ]; then add_collection_error curl-unavailable-or-unusable; fi
+fi
+printf '"curlVersion":%s,"environmentPresence":[' "$curl_version" >&3
+separator=''
+if [ "$host_ok" = true ] && ! command -v printenv >/dev/null 2>&1; then
+    add_collection_error environment-presence-command-unavailable
+elif [ "$host_ok" = true ]; then
+    for name in HTTPS_PROXY https_proxy HTTP_PROXY http_proxy ALL_PROXY all_proxy NO_PROXY no_proxy NODE_EXTRA_CA_CERTS SSL_CERT_FILE SSL_CERT_DIR CURL_CA_BUNDLE AGENT_KERBEROS_SERVICE_PRINCIPAL COPILOT_USE_DEFAULTPROXY; do
+        is_set=false
+        env_rc=0
+        env_value=$(trap - ERR; printenv "$name" 2>/dev/null) || env_rc=$?
+        if [ "$env_rc" -gt 1 ]; then
+            is_set=null
+            add_collection_error environment-presence-read-error
+        elif [ -n "$env_value" ]; then is_set=true
+        fi
+        unset env_value
+        printf '%s{"name":"%s","isSet":%s}' "$separator" "$name" "$is_set" >&3
+        separator=','
+    done
+fi
+printf '],\n' >&3
+system_status=not-collected
+system_http_enabled=null; system_https_enabled=null; pac=null; auto_detect=null
+if [ "$host_ok" = true ] && [ "$expected_os" = Darwin ]; then
+    if command -v scutil >/dev/null 2>&1 && system_proxy=$(trap - ERR; scutil --proxy 2>/dev/null); then
+        system_status=read
+        # Only top-level enable flags are retained, never addresses or scoped dictionaries.
+        for key in HTTPEnable HTTPSEnable ProxyAutoConfigEnable ProxyAutoDiscoveryEnable; do
+            value=$(printf '%s\n' "$system_proxy" | awk -v key="$key" '$0 ~ "^  " key " : [01]$" { print $3 }')
+            flag=null
+            if [ "$value" = 0 ]; then flag=false; elif [ "$value" = 1 ]; then flag=true; fi
+            case "$key" in
+                HTTPEnable) system_http_enabled=$flag ;;
+                HTTPSEnable) system_https_enabled=$flag ;;
+                ProxyAutoConfigEnable) pac=$flag ;;
+                ProxyAutoDiscoveryEnable) auto_detect=$flag ;;
+            esac
+        done
+        unset system_proxy
+    else
+        system_status=read-error
+        add_collection_error macos-system-proxy-read-error
+    fi
+fi
+printf '"systemProxyClues":{"status":"%s","scope":"macOS scutil top-level flags only; Linux desktop settings not collected","httpProxyEnabled":%s,"httpsProxyEnabled":%s,"pacEnabled":%s,"autoDiscoveryEnabled":%s},\n' "$system_status" "$system_http_enabled" "$system_https_enabled" "$pac" "$auto_detect" >&3
+printf '"results":[' >&3
+separator=''
+failures=0; warnings=0; completed=0
+interpretations=''
+interpretation_separator=''
+check_target() {
+    local id="$1" url="$2" display="$3" expected="$4"
+    local route metrics rc http proxy_status verify dns connect_time tls_time total
+    local severity finding tls ssl timings expected_json valid baseline_failed=false
+    local number='(0|[1-9][0-9]*)(\.[0-9]+)?'
+    local args
+    expected_json=$expected
+    if [ "$expected" = 0 ]; then expected_json=null; fi
+    for route in "${'${routes[@]}'}"; do
+        args=(-q --silent --show-error --globoff --proto '=https' --connect-timeout 5 --max-time 10 --output /dev/null
+            --write-out '%{http_code}|%{http_connect}|%{ssl_verify_result}|%{time_namelookup}|%{time_connect}|%{time_appconnect}|%{time_total}')
+        case "$route" in
+            designated-proxy) args+=(--proxy "$designated_proxy" --noproxy '') ;;
+            direct-authorized) args+=(--proxy '' --noproxy '*') ;;
+        esac
+        rc=0
+        metrics=$(trap - ERR; curl "${'${args[@]}'}" --url "$url" 2>/dev/null) || rc=$?
+        http=null; proxy_status=null; ssl=null; timings=null; tls=unknown; valid=false
+        severity=failure; finding=unclassified
+        if [[ "$metrics" =~ ^[0-9]{3}\|[0-9]{3}\|[0-9]{1,5}\|$number\|$number\|$number\|$number$ ]]; then
+            valid=true
+            IFS='|' read -r http proxy_status verify dns connect_time tls_time total <<< "$metrics"
+            http=$((10#$http)); proxy_status=$((10#$proxy_status)); verify=$((10#$verify))
+            if [ "$http" = 0 ]; then http=null; fi
+            if [ "$proxy_status" = 0 ]; then proxy_status=null; fi
+            timings="{\"nameLookup\":$dns,\"connect\":$connect_time,\"tlsHandshake\":$tls_time,\"total\":$total}"
+            if [ "$verify" -ne 0 ] || [ "$rc" = 51 ] || [ "$rc" = 60 ]; then
+                ssl=$verify; tls=verification-failed
+            elif [ "$rc" = 0 ] && [ "$http" != null ]; then ssl=0; tls=verified-by-curl
+            elif [ "$rc" = 35 ]; then tls=handshake-failed
+            fi
+        fi
+        if [ "$proxy_status" = 407 ] || [ "$http" = 407 ]; then finding=proxy-authentication-required
+        elif [ "$proxy_status" != null ] && [ "$proxy_status" -ge 400 ]; then finding=proxy-connect-rejected
+        elif [ "$rc" != 0 ]; then
+            case "$rc" in
+                5) finding=proxy-dns-failed ;; 6) finding=dns-failed ;; 7) finding=connection-failed ;;
+                28) finding=request-timeout ;; 35) finding=tls-handshake-failed ;;
+                51|60) finding=certificate-verification-failed ;; 58) finding=client-certificate-error ;;
+                77) finding=ca-configuration-error ;; *) finding=curl-transfer-failed ;;
+            esac
+        elif [ "$valid" != true ] || [ "$http" = null ]; then finding=missing-or-invalid-http-observation
+        elif [ "$tls" = verification-failed ]; then finding=certificate-verification-failed
+        elif [ "$expected" != 0 ] && [ "$http" != "$expected" ]; then finding=unexpected-health-http-status
+        elif [ "$http" -ge 500 ]; then finding=server-error-response
+        elif [ "$http" -ge 400 ]; then severity=warning; finding=authentication-policy-or-path-response
+        else
+            severity=observation; finding=http-response-only
+            if [ "$expected" != 0 ]; then finding=expected-health-http-status; fi
+        fi
+        if [ "$route" = designated-proxy ] && [ "$severity" = observation ] && [ "$proxy_status" != 200 ]; then
+            severity=warning; finding=designated-proxy-connect-not-observed
+        fi
+        if [ "$severity" = failure ]; then failures=$((failures+1)); fi
+        if [ "$severity" = warning ]; then warnings=$((warnings+1)); fi
+        completed=$((completed+1))
+        printf '%s{"endpointId":"%s","target":"%s","route":"%s","expectedHttpStatus":%s,"curlExitCode":%s,"proxyConnectStatus":%s,"httpStatus":%s,"tls":"%s","sslVerifyResult":%s,"timingsSeconds":%s,"severity":"%s","finding":"%s"}' "$separator" "$id" "$display" "$route" "$expected_json" "$rc" "$proxy_status" "$http" "$tls" "$ssl" "$timings" "$severity" "$finding" >&3
+        separator=','
+        echo "$id / $route : $finding [CONNECT=$proxy_status, HTTP=$http, TLS=$tls]"
+        if [ "$route" = environment-default ] && [ "$severity" = failure ]; then baseline_failed=true; fi
+        if [ "$baseline_failed" = true ] && [ "$route" = designated-proxy ] && [ "$finding" = expected-health-http-status ] && [ "$proxy_status" = 200 ]; then
+            interpretations="$interpretations$interpretation_separator{\"endpointId\":\"$id\",\"signal\":\"designated-proxy-succeeded-where-curl-default-failed\",\"nextStep\":\"Compare explicit Copilot proxy settings; this does not prove a PAC cause or recovery.\"}"
+            interpretation_separator=','
+        fi
+    done
+}
+if [ "$host_ok" = true ] && [ "$curl_ok" = true ]; then
+${targets.map(ep => `    check_target ${bashQuote(ep.id)} ${bashQuote(ep.url)} ${bashQuote(ep.displayTarget)} ${ep.expectedStatus || 0}`).join('\n')}
+fi
+if [ -z "$designated_proxy" ]; then
+    echo 'No designated proxy URL supplied; this is not a designated-proxy comparison.' >&2
+    interpretations="$interpretations$interpretation_separator{\"signal\":\"designated-proxy-not-tested\",\"nextStep\":\"Ask IT for the approved HTTP proxy URL; do not guess a PAC result.\"}"
+fi
+expected_count=${targets.length * routes.length}
+complete=true
+exit_code=0
+if [ -n "$collection_errors" ] || [ "$completed" -ne "$expected_count" ]; then complete=false; fi
+if [ "$failures" -gt 0 ] || [ "$completed" -ne "$expected_count" ]; then exit_code=1
+elif [ "$warnings" -gt 0 ] || [ -n "$collection_errors" ] || [ -z "$designated_proxy" ]; then exit_code=2
+fi
+printf '],"interpretations":[%s],"collectionErrors":[%s],"completedAt":"%s","summary":{"expectedRequests":%s,"completedRequests":%s,"failures":%s,"warnings":%s,"collectionComplete":%s,"copilotRecovery":"not verified"}}\n' "$interpretations" "$collection_errors" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$expected_count" "$completed" "$failures" "$warnings" "$complete" >&3
+exec 3>&-
+echo "Saved $file. Review before sharing. $failures failures; $warnings warnings. Copilot recovery is NOT verified."
+exit "$exit_code"
+`;
+}
+
+function generatePathScript() {
+    const os = document.getElementById('path-environment').value;
+    return os === 'windows' ? generateWindowsPathScript() : generateUnixPathScript(os, document.getElementById('path-shell').value);
+}
+
 function renderScript() {
+    const os = document.getElementById('path-environment').value;
+    const windows = os === 'windows';
+    const shell = document.getElementById('path-shell').value;
+    const extension = windows ? 'ps1' : shell === 'zsh' ? 'zsh' : 'sh';
+    document.getElementById('path-shell-options').hidden = windows;
+    document.getElementById('basic-shell-help').hidden = currentScriptTab === 'powershell';
+    document.getElementById('basic-shell-command').textContent = `${currentScriptTab} ./copilot-network-check.${currentScriptTab === 'zsh' ? 'zsh' : 'sh'}`;
+    document.getElementById('path-clues').textContent = t(`path.clues.${os}`);
+    document.getElementById('path-instructions').textContent = t(`path.instructions.${windows ? 'windows' : 'unix'}`);
+    document.getElementById('path-command').textContent = windows ? '.\\copilot-path-check.ps1' : `${shell} ./copilot-path-check.${extension}`;
+    document.getElementById('path-extension').textContent = `(.${extension})`;
+    document.getElementById('path-direct-note').hidden = !document.getElementById('path-direct').checked;
+    document.getElementById('path-proxy-notice').hidden = !!getOptions().proxyUrl;
     const error = configurationError(getOptions());
     if (error) {
         document.getElementById('script-content').textContent = t(error);
+        document.getElementById('path-script-content').textContent = t(error);
         return;
     }
     document.getElementById('script-content').textContent =
-        currentScriptTab === 'bash' ? generateBashScript() : generatePowerShellScript();
+        currentScriptTab === 'powershell' ? generatePowerShellScript() : generateBashScript(currentScriptTab);
+    document.getElementById('path-script-content').textContent = generatePathScript();
 }
 
 function switchScriptTab(tab, el) {
@@ -2141,20 +2909,25 @@ function switchScriptTab(tab, el) {
     renderScript();
 }
 
-function copyScript(button) {
+function copyScript(button, tab = currentScriptTab) {
     if (configurationError(getOptions())) { refreshConfiguration(); return; }
     renderScript();
-    return copyText(document.getElementById('script-content').textContent, button);
+    return copyText(document.getElementById(tab === 'path' ? 'path-script-content' : 'script-content').textContent, button);
 }
 
-function downloadScript() {
+function downloadScript(asText = false, tab = currentScriptTab) {
     if (configurationError(getOptions())) { refreshConfiguration(); return; }
     renderScript();
-    const ext = currentScriptTab === 'bash' ? 'sh' : 'ps1';
-    dl(`copilot-network-check.${ext}`, document.getElementById('script-content').textContent, 'text/plain');
+    const shell = tab === 'path'
+        ? document.getElementById('path-environment').value === 'windows' ? 'powershell' : document.getElementById('path-shell').value
+        : tab;
+    const ext = asText ? 'txt' : shell === 'powershell' ? 'ps1' : shell === 'zsh' ? 'zsh' : 'sh';
+    const name = tab === 'path' ? 'copilot-path-check' : 'copilot-network-check';
+    const content = document.getElementById(tab === 'path' ? 'path-script-content' : 'script-content').textContent;
+    dl(`${name}.${ext}`, content, 'text/plain;charset=utf-8');
 }
 
-document.querySelectorAll('#opt-verbose, #opt-dns, #opt-cert, #opt-proxy-script').forEach(el => {
+document.querySelectorAll('#opt-verbose, #opt-dns, #opt-cert, #opt-proxy-script, #path-environment, #path-shell, #path-vpn, #path-direct').forEach(el => {
     el.addEventListener('change', () => {
         if (document.getElementById('script-section').classList.contains('open')) renderScript();
     });
@@ -2263,7 +3036,7 @@ const IDE_GUIDES = {
 </ol>
 <strong>プロキシ:</strong>
 <ul><li><code>Settings → Appearance & Behavior → System Settings → HTTP Proxy</code></li></ul>
-<details><summary>証明書トラストストア</summary>
+<details><summary>証明書の信頼ストア</summary>
 <ul>
     <li>CopilotはOSの信頼ストアと<code>NODE_EXTRA_CA_CERTS</code>を参照します。Log CA Certificatesで確認してください。</li>
     <li><code>Settings → Appearance &amp; Behavior → System Settings → Server Certificates</code>。通常の対処として証明書検証を無効にしないでください。</li>
@@ -2276,7 +3049,7 @@ const IDE_GUIDES = {
     <li><code>View → Output</code> → <code>GitHub Copilot</code> を選択</li>
     <li>接続・認証・タイムアウトのエラーを確認</li>
 </ol>
-<strong>プロキシ:</strong> Windows設定を参照しますが、認証情報は取得しません。既定の資格情報には公式資料の<code>COPILOT_USE_DEFAULTPROXY=true</code>を参照し、変更後にVisual Studioを再起動してください。
+<strong>プロキシ:</strong> Windowsのプロキシ設定は参照しますが、その認証情報は取得しません。Windowsの既定の資格情報を使用する場合は、公式ドキュメントの<code>COPILOT_USE_DEFAULTPROXY=true</code>の説明を確認してください。設定変更後はVisual Studioを再起動してください。
 <p><a href="https://learn.microsoft.com/en-us/visualstudio/install/install-and-use-visual-studio-behind-a-firewall-or-proxy-server" target="_blank">VS ファイアウォール環境ガイド →</a></p>
 <details><summary>ログ</summary>
 <p>上記のOutputと公式ログ収集資料を使用してください。保存先は環境によって異なります。</p>
@@ -2291,9 +3064,9 @@ const IDE_GUIDES = {
 </ol>
 <p>下記の公式資料でクライアントとブラウザの設定を比較してください。</p>`,
         cli: `<strong>GitHub Copilot CLI / app</strong>
-<p>CLIでは<code>copilot login</code>を使用します。データレジデンシーでは<code>copilot login --host https://SUBDOMAIN.ghe.com</code>を使用します。リモート端末でブラウザのコールバックが届かない場合は<code>--device-code</code>を指定します。</p>
+<p>CLIへのログインには<code>copilot login</code>を使用します。データレジデンシー環境では<code>copilot login --host https://SUBDOMAIN.ghe.com</code>を使用します。リモート端末でブラウザからの認証コールバックがCLIに届かない場合は<code>--device-code</code>を指定してください。</p>
 <p>トークンの優先順位: <code>COPILOT_GITHUB_TOKEN</code> → <code>GH_TOKEN</code> → <code>GITHUB_TOKEN</code>。設定の有無だけを確認し、値は共有しないでください。Classic PATは非対応です。Fine-grained PATにはCopilot Requests権限が必要です。401は認証情報、403はライセンスや組織ポリシーが原因の場合もあります。</p>
-<p>CLIとCopilot appの音声機能にはモデル取得用ドメインが必要です。上の音声オプションを有効にしてください。Cloud agentのネットワークとは別です。</p>`,
+<p>CLIとCopilot appの音声機能には、モデルの取得に必要なドメインへのアクセスが必要です。上の音声オプションを有効にしてください。クラウドエージェントのインターネットアクセスとは別の設定です。</p>`,
         other: `<strong>Eclipse / Vim / Neovim</strong>
 <p>EclipseもCopilotに対応していますが、機能はIDEとバージョンにより異なります。Vim/Neovimでは<code>:Copilot status</code>を使用します。VS Code専用設定は流用しないでください。</p>
 <p><a href="https://docs.github.com/en/copilot/reference/copilot-feature-matrix" target="_blank">公式機能一覧（プレビュー）</a></p>`
@@ -2330,7 +3103,7 @@ const IDE_GUIDES = {
 </ol>
 <strong>프록시:</strong>
 <ul><li><code>Settings → Appearance & Behavior → System Settings → HTTP Proxy</code></li></ul>
-<details><summary>인증서 트러스트 스토어</summary>
+<details><summary>인증서 신뢰 저장소</summary>
 <ul>
     <li>Copilot은 OS 신뢰 저장소와 <code>NODE_EXTRA_CA_CERTS</code>를 참조합니다. Log CA Certificates로 실제 인식을 확인하세요.</li>
     <li><code>Settings → Appearance &amp; Behavior → System Settings → Server Certificates</code>. 인증서 검증 해제를 일반적인 해결책으로 사용하지 마세요.</li>
@@ -2343,7 +3116,7 @@ const IDE_GUIDES = {
     <li><code>View → Output</code> → <code>GitHub Copilot</code> 선택</li>
     <li>연결, 인증, 타임아웃 관련 오류 확인</li>
 </ol>
-<strong>프록시:</strong> Windows 설정은 읽지만 인증 정보는 가져오지 않습니다. 기본 자격 증명은 공식 문서의 <code>COPILOT_USE_DEFAULTPROXY=true</code> 안내를 참고하고 변경 후 Visual Studio를 재시작하세요.
+<strong>프록시:</strong> Windows의 프록시 설정은 읽지만 해당 인증 정보는 가져오지 않습니다. Windows 기본 자격 증명을 사용하려면 공식 문서의 <code>COPILOT_USE_DEFAULTPROXY=true</code> 안내를 참고하세요. 설정 변경 후에는 Visual Studio를 다시 시작하세요.
 <p><a href="https://learn.microsoft.com/en-us/visualstudio/install/install-and-use-visual-studio-behind-a-firewall-or-proxy-server" target="_blank">VS 방화벽 환경 가이드 →</a></p>
 <details><summary>로그</summary>
 <p>위 Output 창과 공식 로그 수집 안내를 사용하세요. 저장 경로는 환경에 따라 다릅니다.</p>
@@ -2358,9 +3131,9 @@ const IDE_GUIDES = {
 </ol>
 <p>아래 공식 문서로 클라이언트와 브라우저 설정을 비교하세요.</p>`,
         cli: `<strong>GitHub Copilot CLI / app</strong>
-<p>CLI 인증은 <code>copilot login</code>, 데이터 레지던시는 <code>copilot login --host https://SUBDOMAIN.ghe.com</code>을 사용합니다. 원격 터미널에서 브라우저 콜백이 CLI에 닿지 않으면 <code>--device-code</code>를 사용하세요.</p>
+<p>CLI에 로그인하려면 <code>copilot login</code>을 사용하세요. 데이터 레지던시 환경에서는 <code>copilot login --host https://SUBDOMAIN.ghe.com</code>을 사용합니다. 원격 터미널에서 브라우저의 인증 콜백이 CLI로 전달되지 않으면 <code>--device-code</code>를 사용하세요.</p>
 <p>토큰 우선순위: <code>COPILOT_GITHUB_TOKEN</code> → <code>GH_TOKEN</code> → <code>GITHUB_TOKEN</code>. 설정 여부만 확인하고 값은 공유하지 마세요. Classic PAT는 지원하지 않으며 fine-grained PAT에는 Copilot Requests 권한이 필요합니다. 401은 인증 정보, 403은 라이선스나 조직 정책 문제일 수도 있습니다.</p>
-<p>CLI와 Copilot app의 음성 기능에는 모델 조회·다운로드 도메인이 필요합니다. 위 음성 옵션을 켜세요. Cloud agent 인터넷 접근과는 별개입니다.</p>`,
+<p>CLI와 Copilot app의 음성 기능을 사용하려면 모델 조회 및 다운로드에 필요한 도메인에 접근할 수 있어야 합니다. 위의 음성 옵션을 켜세요. 클라우드 에이전트의 인터넷 액세스와는 별개입니다.</p>`,
         other: `<strong>Eclipse / Vim / Neovim</strong>
 <p>Eclipse도 Copilot을 지원하며 기능은 IDE·버전별로 다릅니다. Vim/Neovim에서는 <code>:Copilot status</code>를 실행하세요. VS Code 전용 설정을 그대로 적용하지 마세요.</p>
 <p><a href="https://docs.github.com/en/copilot/reference/copilot-feature-matrix" target="_blank">공식 기능 매트릭스(프리뷰)</a></p>`
@@ -2370,10 +3143,10 @@ const IDE_GUIDES = {
 function renderIdeGuide() {
     const guides = IDE_GUIDES[currentLang] || IDE_GUIDES.en;
     document.getElementById('ide-content').innerHTML = guides[currentIdeTab] + `
-<p><a href="https://docs.github.com/en/copilot/how-tos/troubleshoot-copilot/view-logs" target="_blank">GitHub Docs: logs</a> ·
-<a href="https://docs.github.com/en/copilot/how-tos/copilot-in-your-ide/set-up-copilot/configure-network-settings" target="_blank">GitHub Docs: proxy / CA</a> ·
-<a href="https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/troubleshoot-copilot-cli-auth" target="_blank">GitHub Docs: CLI authentication</a> ·
-<a href="${ALLOWLIST_SOURCE}#copilot-voice-features" target="_blank">GitHub Docs: voice</a></p>`;
+<p><a href="https://docs.github.com/en/copilot/how-tos/troubleshoot-copilot/view-logs" target="_blank">${t('ide.docsLogs')}</a> ·
+<a href="https://docs.github.com/en/copilot/how-tos/copilot-in-your-ide/set-up-copilot/configure-network-settings" target="_blank">${t('ide.docsNetwork')}</a> ·
+<a href="https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/troubleshoot-copilot-cli-auth" target="_blank">${t('ide.docsAuth')}</a> ·
+<a href="${ALLOWLIST_SOURCE}#copilot-voice-features" target="_blank">${t('ide.docsVoice')}</a></p>`;
 }
 
 function switchIdeTab(tab, el) {
