@@ -679,13 +679,17 @@ PROXY
     writeFileSync(join(directory, 'curl'), `#!/bin/sh
 if [ "$2" = --version ]; then
     if [ "$MOCK_CURL_UNUSABLE" = 1 ]; then exit 1; fi
-    echo 'curl 8.10.0 fixture'; exit 0
+    echo 'curl 8.10.0 fixture'
+    if [ "$MOCK_NO_HTTP2" = 1 ]; then echo 'Features: HTTPS-proxy IPv6'; else echo 'Features: HTTP2 HTTPS-proxy IPv6'; fi
+    exit 0
 fi
-explicit=false; proxy=''; bypass=unset
+explicit=false; proxy=''; bypass=unset; url=''; http1=false
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --proxy) explicit=true; proxy="$2"; shift ;;
         --noproxy) bypass="$2"; shift ;;
+        --url) url="$2"; shift ;;
+        --http1.1) http1=true ;;
     esac
     shift
 done
@@ -698,13 +702,38 @@ if [ "$explicit" = true ]; then
     fi
 elif [ "$MOCK_DEFAULT_FAIL" = 1 ]; then http=000; rc=28
 fi
+if [ "$url" = 'https://www.cloudflare.com/cdn-cgi/trace' ]; then
+    if [ "$MOCK_EGRESS_FAIL" = 1 ]; then exit 7; fi
+    ip=198.51.100.10
+    if [ -n "$proxy" ]; then ip=203.0.113.20; fi
+    printf 'fl=1\\nip=%s\\nts=1\\nloc=JP\\n' "$ip"
+    exit 0
+fi
 if [ -n "$MOCK_HTTP" ]; then http="$MOCK_HTTP"; fi
 if [ -n "$MOCK_CONNECT" ]; then connect="$MOCK_CONNECT"; fi
 if [ -n "$MOCK_EXIT" ]; then rc="$MOCK_EXIT"; fi
+version=2
+if [ "$http1" = true ]; then
+    version=1.1
+    if [ "$MOCK_HTTP1_OK" = 1 ]; then http=200; rc=0; fi
+fi
+if [ -n "$MOCK_HTTP_VERSION" ]; then version="$MOCK_HTTP_VERSION"; fi
+request_id='ABCD:1234:5678:9ABC:DEF0'
+if [ "$MOCK_REQUEST_ID" = none ]; then request_id=''; fi
+content_type='application/json; charset=utf-8'
+if [ -n "$MOCK_CONTENT_TYPE" ]; then content_type="$MOCK_CONTENT_TYPE"; fi
+issuer='C = GB, O = Sectigo Limited, CN = Sectigo Public Server Authentication CA DV E36'
+if [ -n "$MOCK_ISSUER" ]; then issuer="$MOCK_ISSUER"; fi
 tls=0
 if [ -n "$MOCK_TLS" ]; then tls="$MOCK_TLS"; fi
-if [ "$MOCK_INVALID" = 1 ]; then printf 'private raw output'
-else printf '%s|%s|%s|0.01|0.02|0.03|0.04' "$http" "$connect" "$tls"
+if [ "$MOCK_INVALID" = 1 ]; then printf '200 private raw output'
+elif [ "$MOCK_LEGACY" = 1 ]; then
+    # curl older than 7.84 prints %header literally; older than 7.88 prints no certificates.
+    printf '%s|%s|%s|0.01|0.02|0.03|0.04|1.1|%%header{x-github-request-id}|%s\\n' "$http" "$connect" "$tls" "$content_type"
+else
+    printf '%s|%s|%s|0.01|0.02|0.03|0.04|%s|%s|%s\\n' "$http" "$connect" "$tls" "$version" "$request_id" "$content_type"
+    printf 'Subject: CN = fixture\\n'
+    if [ "$issuer" != none ]; then printf 'Issuer: %s\\n' "$issuer"; fi
 fi
 exit "$rc"
 `, { mode: 0o755 });
@@ -805,6 +834,146 @@ test('Unix path scripts distinguish CONNECT, TLS, HTTP, and malformed metrics', 
     }
 }));
 
+function signalPathApp() {
+    const a = app();
+    a.set('proxy-url', 'http://private-proxy.invalid:8080');
+    a.set('path-direct', true);
+    a.set('path-header-insertion', true);
+    a.set('path-egress', true);
+    a.run(`getPathTargets = () => [
+        {id:'api', url:'https://api.github.com/user', displayTarget:'https://api.github.com/user', purpose:'API', requestIdExpected:true, headerSupported:true},
+        {id:'cdn', url:'https://github.githubassets.com', displayTarget:'https://github.githubassets.com', purpose:'Assets', requestIdExpected:false, headerSupported:false}]`);
+    return a;
+}
+
+function assertPathSignals(a, run) {
+    const routes = ['environment-default', 'designated-proxy', 'direct-authorized'];
+    const steps = a.json('PATH_SIGNAL_NEXT_STEPS');
+    const perRoute = expected => Object.fromEntries(routes.map(route => [route, expected]));
+    const signalsByRoute = report => Object.fromEntries(routes.map(route => [route, Object.fromEntries(
+        report.interpretations.filter(item => item.route === route).map(item => [item.signal, item.endpointIds]))]));
+    const result = (report, id) => report.results.find(item => item.endpointId === id && item.route === 'environment-default');
+
+    const clean = run({});
+    assert.equal(clean.status, 0, clean.stdout + clean.stderr);
+    assert.equal(clean.report.schemaVersion, 2);
+    assert.deepEqual(clean.report.options, { enterpriseHeaderInjectionExpected: true, egressCheck: true });
+    const api = result(clean.report, 'api');
+    assert.deepEqual([api.httpVersion, api.githubRequestId, api.responseOrigin, api.contentType, api.http1Fallback],
+        ['2', 'ABCD:1234:5678:9ABC:DEF0', 'github', 'json', null]);
+    assert.deepEqual(api.tlsIssuer, { category: 'public-ca', label: 'Sectigo' });
+    assert.deepEqual(signalsByRoute(clean.report), perRoute({ 'enterprise-header-cannot-be-injected': ['api'] }));
+    assert.ok(clean.report.interpretations.filter(item => item.route).every(item => item.nextStep === steps[item.signal]));
+    assert.deepEqual(clean.report.egress, [
+        { route: 'environment-default', status: 'collected', country: 'JP', sameIpAsEnvironmentDefault: null },
+        { route: 'designated-proxy', status: 'collected', country: 'JP', sameIpAsEnvironmentDefault: false },
+        { route: 'direct-authorized', status: 'collected', country: 'JP', sameIpAsEnvironmentDefault: true },
+    ]);
+    assert.deepEqual([clean.report.summary.expectedRequests, clean.report.summary.completedRequests], [6, 6]);
+    assert.match(clean.stdout, /TLS issuer \(screen only\): C ?= ?GB, O ?= ?Sectigo Limited/);
+    assert.match(clean.stdout, /198\.51\.100\.10/);
+    assert.match(clean.stdout, /203\.0\.113\.20/);
+    assert.doesNotMatch(JSON.stringify(clean.report), /198\.51\.100|203\.0\.113|Sectigo Limited|private-/);
+
+    const inspected = run({ MOCK_ISSUER: 'O = Zscaler Inc., CN = Zscaler Intermediate Root CA (zscalertwo.net)',
+        MOCK_REQUEST_ID: 'none', MOCK_CONTENT_TYPE: 'text/html; charset=utf-8' });
+    assert.equal(inspected.status, 0, inspected.stdout + inspected.stderr);
+    const inspectedApi = result(inspected.report, 'api');
+    assert.deepEqual(inspectedApi.tlsIssuer, { category: 'inspection-vendor', label: 'Zscaler' });
+    assert.deepEqual([inspectedApi.githubRequestId, inspectedApi.responseOrigin, inspectedApi.contentType], [null, 'not-confirmed', 'html']);
+    assert.equal(result(inspected.report, 'cdn').responseOrigin, null);
+    assert.deepEqual(signalsByRoute(inspected.report), perRoute({
+        'tls-interception-suspected': ['api', 'cdn'],
+        'response-not-confirmed-from-github': ['api'],
+        'enterprise-header-injection-possible': ['api'],
+    }));
+    assert.match(inspected.stdout, /No x-github-request-id header/);
+    assert.doesNotMatch(JSON.stringify(inspected.report), /zscalertwo/);
+
+    a.set('path-header-insertion', false);
+    const privateCa = run({ MOCK_ISSUER: 'CN = Example Corp Inspection Root, O = Example Corp' });
+    assert.deepEqual(privateCa.report.options, { enterpriseHeaderInjectionExpected: false, egressCheck: true });
+    assert.deepEqual(result(privateCa.report, 'api').tlsIssuer, { category: 'unrecognized', label: null });
+    assert.deepEqual(signalsByRoute(privateCa.report), perRoute({ 'tls-interception-suspected': ['api', 'cdn'] }));
+    assert.match(privateCa.stdout, /Example Corp Inspection Root, O ?= ?Example Corp \[unrecognized\]/);
+    assert.doesNotMatch(JSON.stringify(privateCa.report), /Example Corp/);
+
+    a.set('path-header-insertion', true);
+    const legacy = run({ MOCK_LEGACY: '1' });
+    const legacyApi = result(legacy.report, 'api');
+    assert.deepEqual([legacyApi.httpVersion, legacyApi.githubRequestId, legacyApi.responseOrigin, legacyApi.contentType], ['1.1', null, null, 'json']);
+    assert.deepEqual(legacyApi.tlsIssuer, { category: 'not-collected', label: null });
+    assert.deepEqual(signalsByRoute(legacy.report), perRoute({ 'enterprise-header-not-assessed': ['api'] }));
+
+    for (const [env, finding, fallback] of [
+        [{ MOCK_EXIT: '16', MOCK_HTTP: '000', MOCK_HTTP1_OK: '1' }, 'http2-protocol-error', { curlExitCode: 0, httpStatus: 200, succeeded: true }],
+        [{ MOCK_EXIT: '92', MOCK_HTTP: '000' }, 'http2-stream-error', { curlExitCode: 92, httpStatus: null, succeeded: false }],
+        [{ MOCK_EXIT: '16', MOCK_HTTP: '000', MOCK_HTTP1_OK: '1', MOCK_NO_HTTP2: '1' }, 'http2-protocol-error', null],
+        [{ MOCK_EXIT: '56', MOCK_HTTP: '000', MOCK_HTTP_VERSION: '1.1', MOCK_HTTP1_OK: '1' }, 'receive-failed', null],
+        [{ MOCK_EXIT: '52', MOCK_HTTP: '000', MOCK_CONNECT: '403', MOCK_HTTP1_OK: '1' }, 'proxy-connect-rejected', null],
+    ]) {
+        const failed = run(env);
+        assert.equal(failed.status, 1, `${finding}: ${failed.stdout}\n${failed.stderr}`);
+        for (const item of failed.report.results) {
+            assert.equal(item.finding, finding);
+            assert.deepEqual(item.http1Fallback, fallback, `${finding}: ${JSON.stringify(item)}\n${failed.stdout}\n${failed.stderr}`);
+        }
+        const recovered = failed.report.interpretations.filter(item => item.signal === 'http2-failure-http11-recovered');
+        assert.deepEqual(recovered.map(item => [item.route, item.endpointIds]), fallback?.succeeded ? routes.map(route => [route, ['api', 'cdn']]) : []);
+        if (fallback?.succeeded) assert.match(failed.stdout, /HTTP\/1\.1 retry: exit=0, HTTP=200/);
+    }
+
+    const noEgress = run({ MOCK_EGRESS_FAIL: '1' });
+    assert.equal(noEgress.status, 0, noEgress.stdout + noEgress.stderr);
+    assert.deepEqual(noEgress.report.egress, routes.map(route => ({ route, status: 'not-collected', country: null, sameIpAsEnvironmentDefault: null })));
+    assert.match(noEgress.stdout, /Egress \/ environment-default : not collected/);
+    a.set('path-egress', false);
+    const optedOut = run({});
+    assert.equal(optedOut.report.egress, null);
+    assert.equal(optedOut.report.options.egressCheck, false);
+    assert.doesNotMatch(optedOut.stdout, /Egress \//);
+
+    a.set('deployment', 'ghe');
+    a.set('ghe-subdomain', 'private-tenant');
+    a.set('opt-public-code', false);
+    const ghe = run({});
+    assert.equal(ghe.report.options.enterpriseHeaderInjectionExpected, false);
+    assert.ok(!ghe.report.interpretations.some(item => item.signal.startsWith('enterprise-header-')));
+}
+
+test('Unix path scripts export TLS issuer, request ID, HTTP/2 fallback, header-insertion and egress signals', () => withTemp(directory => {
+    unixPathMocks(directory);
+    for (const shell of ['bash', ...(hasZsh ? ['zsh'] : [])]) {
+        const a = signalPathApp();
+        assertPathSignals(a, env => runUnixPathFixture(directory, a, 'linux', env, shell));
+    }
+}));
+
+test('path signal options hide header insertion for ghe.com and mark request-ID and header hosts', () => {
+    const a = app();
+    assert.deepEqual(a.json('getPathSignalOptions()'), { enterpriseHeaderInjectionExpected: false, egressCheck: false });
+    a.set('path-header-insertion', true);
+    a.run('renderScript()');
+    assert.equal(a.nodes.get('path-header-insertion-option').hidden, false);
+    assert.equal(a.json('getPathSignalOptions()').enterpriseHeaderInjectionExpected, true);
+    const flags = (targets, host) => [...new Set(targets.filter(item => new URL(item.url).hostname === host)
+        .map(item => `${item.requestIdExpected}/${item.headerSupported}`))];
+    const targets = a.json('getPathTargets()');
+    assert.deepEqual(flags(targets, 'api.github.com'), ['true/true']);
+    assert.deepEqual(flags(targets, 'api.githubcopilot.com'), ['true/true']);
+    assert.deepEqual(flags(targets, 'copilot-proxy.githubusercontent.com'), ['true/false']);
+    assert.deepEqual(flags(targets, 'github.githubassets.com'), ['false/false']);
+    assert.deepEqual(flags(targets, 'default.exp-tas.com'), ['false/false']);
+    a.set('deployment', 'ghe');
+    a.set('ghe-subdomain', 'tenant');
+    a.run('renderScript()');
+    assert.equal(a.nodes.get('path-header-insertion-option').hidden, true);
+    assert.equal(a.json('getPathSignalOptions()').enterpriseHeaderInjectionExpected, false);
+    const ghe = a.json('getPathTargets()');
+    assert.deepEqual(flags(ghe, 'tenant.ghe.com'), ['true/false']);
+    assert.deepEqual(flags(ghe, 'copilot-proxy.tenant.ghe.com'), ['false/false']);
+});
+
 function pathScriptWithMocks(a, overrides) {
     const script = a.run('generateWindowsPathScript()');
     assert.equal(script.split(pathMainMarker).length, 2);
@@ -827,12 +996,15 @@ function Get-ItemProperty {
 function Invoke-PathCurl {
     param([string]$Executable, [string[]]$CurlArguments)
     if ($CurlArguments[0] -eq '--version') {
-        return [pscustomobject]@{ exitCode = 0; output = 'curl 8.10.0 fixture'; runnerTimedOut = $false }
+        $features = 'Features: HTTP2 HTTPS-proxy IPv6'
+        if ($env:MOCK_NO_HTTP2 -eq '1') { $features = 'Features: HTTPS-proxy IPv6' }
+        return [pscustomobject]@{ exitCode = 0; output = (@('curl 8.10.0 fixture', $features) -join [char]10); runnerTimedOut = $false }
     }
     $exitCode = 0
     $http = '200'
     $connect = '000'
     $tls = '0'
+    $url = $CurlArguments[[Array]::IndexOf($CurlArguments, '--url') + 1]
     if ($CurlArguments -contains '--proxy') {
         $index = [Array]::IndexOf($CurlArguments, '--proxy')
         if ($CurlArguments[$index + 1]) {
@@ -841,11 +1013,33 @@ function Invoke-PathCurl {
             if ($noProxy -lt 0 -or $CurlArguments[$noProxy + 1] -ne '') { throw 'NO_PROXY override missing' }
         } elseif ($CurlArguments -notcontains '*') { throw 'Direct authorization not applied' }
     } elseif ($env:MOCK_DEFAULT_FAIL -eq '1') { $exitCode = 28; $http = '000' }
+    if ($url -eq 'https://www.cloudflare.com/cdn-cgi/trace') {
+        if ($env:MOCK_EGRESS_FAIL -eq '1') { return [pscustomobject]@{ exitCode = 7; output = ''; runnerTimedOut = $false } }
+        $ip = '198.51.100.10'
+        if ($connect -eq '200') { $ip = '203.0.113.20' }
+        return [pscustomobject]@{ exitCode = 0; output = (@('fl=1', "ip=$ip", 'loc=JP') -join [char]10); runnerTimedOut = $false }
+    }
     if ($env:MOCK_HTTP) { $http = $env:MOCK_HTTP }
     if ($env:MOCK_EXIT) { $exitCode = [int]$env:MOCK_EXIT }
     if ($env:MOCK_CONNECT) { $connect = $env:MOCK_CONNECT }
     if ($env:MOCK_TLS) { $tls = $env:MOCK_TLS }
-    $output = "$http|$connect|$tls|0.01|0.02|0.03|0.04"
+    $version = '2'
+    if ($CurlArguments -contains '--http1.1') {
+        $version = '1.1'
+        if ($env:MOCK_HTTP1_OK -eq '1') { $http = '200'; $exitCode = 0 }
+    }
+    if ($env:MOCK_HTTP_VERSION) { $version = $env:MOCK_HTTP_VERSION }
+    $requestId = 'ABCD:1234:5678:9ABC:DEF0'
+    if ($env:MOCK_REQUEST_ID -eq 'none') { $requestId = '' }
+    $contentType = 'application/json; charset=utf-8'
+    if ($env:MOCK_CONTENT_TYPE) { $contentType = $env:MOCK_CONTENT_TYPE }
+    # Schannel-style distinguished names have no spaces around '='.
+    $issuer = 'C=GB, O=Sectigo Limited, CN=Sectigo Public Server Authentication CA DV E36'
+    if ($env:MOCK_ISSUER) { $issuer = $env:MOCK_ISSUER }
+    $lines = @("$http|$connect|$tls|0.01|0.02|0.03|0.04|$version|$requestId|$contentType", 'Subject:CN=fixture')
+    if ($env:MOCK_LEGACY -eq '1') { $lines = @("$http|$connect|$tls|0.01|0.02|0.03|0.04|1.1|%header{x-github-request-id}|$contentType") }
+    elseif ($issuer -ne 'none') { $lines += "Issuer:$issuer" }
+    $output = $lines -join [char]10
     if ($env:MOCK_INVALID -eq '1') { $output = 'private raw output' }
     [pscustomobject]@{ exitCode = $exitCode; output = $output; runnerTimedOut = ($env:MOCK_TIMEOUT -eq '1') }
 }
@@ -954,6 +1148,12 @@ test('Windows path script reports blocked prerequisites instead of probing anoth
     }
 }));
 
+test('Windows path script exports TLS issuer, request ID, HTTP/2 fallback, header-insertion and egress signals', { skip: !hasPowerShell }, () => withTemp(directory => {
+    const a = signalPathApp();
+    a.set('path-environment', 'windows');
+    assertPathSignals(a, env => runPathFixture(directory, pathScriptWithMocks(a, pathMocks), env));
+}));
+
 test('native path scripts force designated proxy despite NO_PROXY and preserve direct opt-in', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'copilot-path-proxy-'));
     const key = join(directory, 'key.pem'), cert = join(directory, 'cert.pem');
@@ -1052,6 +1252,16 @@ function Invoke-PathCurl {
                 assert.equal(explicit.proxyConnectStatus, reject ? 407 : 200);
                 assert.equal(explicit.httpStatus, reject ? null : 200);
                 assert.equal(explicit.tls, reject ? 'unknown' : 'verified-by-curl');
+                // Real curl output: certificate issuers need curl 7.88+, which Schannel builds may format differently.
+                const [major, minor] = report.curlVersion.split('.').map(Number);
+                const certsSupported = major > 7 || (major === 7 && minor >= 88);
+                for (const item of report.results.filter(item => item.httpStatus === 200)) {
+                    assert.equal(item.httpVersion, '1.1');
+                    assert.equal(item.responseOrigin, null);
+                    if (command !== powerShellExecutable && certsSupported) assert.deepEqual(item.tlsIssuer, { category: 'unrecognized', label: null });
+                    else assert.ok(['unrecognized', 'not-collected'].includes(item.tlsIssuer.category), JSON.stringify(item));
+                }
+                assert.doesNotMatch(JSON.stringify(report), /localhost/);
             }
         }
     } finally {
